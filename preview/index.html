@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="theme-color" content="#EFEEEB">
+  <meta name="description" content="An early preview of Averlen for the web, using sample data.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Averlen · Web preview</title>
+  <link rel="icon" href="../averlen-logo.png">
+  <link rel="stylesheet" href="./styles.css?v=db98a177cd">
+  <script type="module" src="./app.js?v=db98a177cd"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="layout">
+    <aside class="sidebar">
+      <a class="brand" href="#home" aria-label="Averlen home"><img src="../averlen-logo.png" width="36" height="36" alt=""><span>Averlen</span></a>
+      <p class="workspace-label">YOUR FINANCIAL PICTURE</p>
+      <nav id="navigation" aria-label="Main navigation"></nav>
+      <div class="sidebar-bottom"><a href="#settings" class="settings-link" id="settings-link">Settings</a><div class="profile"><span class="avatar">A</span><div><strong>Sample household</strong><small>Web preview</small></div></div></div>
+    </aside>
+    <div class="workspace">
+      <div class="preview-banner"><span><strong>Web preview</strong><span class="banner-detail"> · Sample data only. Your accounts are not connected.</span></span><button id="about-preview" class="text-button">About this preview</button></div>
+      <header class="topbar"><div><h1 id="page-title">Home</h1></div><div class="toolbar"><label class="sr-only" for="month">Month</label><select id="month"></select><button id="account-settings" class="icon-button" data-action="open-settings" aria-label="Settings"></button></div></header>
+      <main id="main" tabindex="-1"></main>
+      <footer>Made for a clearer picture, without a rigid budget. <span>Averlen · Early web preview</span></footer>
+    </div>
+  </div>
+  <dialog id="detail" aria-labelledby="dialog-title"><div class="dialog-heading"><h2 id="dialog-title"></h2><button id="close-dialog" class="icon-button" aria-label="Close details">×</button></div><div id="dialog-body"></div></dialog>
+  <div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
+</body>
+</html>

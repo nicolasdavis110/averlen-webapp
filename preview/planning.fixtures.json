@@ -1,0 +1,259 @@
+{
+ "loans": [
+  {
+   "balance": 316470.97821136145,
+   "elapsed": 52,
+   "extraMonths": 276,
+   "extraSaved": 40341.31738136092,
+   "interest": 327210.3271638049,
+   "loan": {
+    "annualInterestRate": 6.375,
+    "createdAt": 814753729.951686,
+    "id": "DEB70000-0000-0000-0000-000000000001",
+    "kind": "mortgage",
+    "monthlyPayment": 2090,
+    "name": "Home Mortgage",
+    "originalPrincipal": 335000,
+    "startDate": 677944800,
+    "termMonths": 360,
+    "updatedAt": 814753729.951686
+   },
+   "lumpMonths": 297,
+   "lumpSaved": 19834.844611746143,
+   "months": 308,
+   "never": false,
+   "paid": 90150.97821136148,
+   "payment": 2090
+  },
+  {
+   "balance": 21078.21957897467,
+   "elapsed": 19,
+   "extraMonths": 35,
+   "extraSaved": 366.88540083377393,
+   "interest": 2247.087936667707,
+   "loan": {
+    "annualInterestRate": 5.9,
+    "createdAt": 814753729.951686,
+    "id": "DEB70000-0000-0000-0000-000000000002",
+    "kind": "auto",
+    "monthlyPayment": 569,
+    "name": "Car Loan",
+    "originalPrincipal": 29500,
+    "startDate": 764690400,
+    "termMonths": 60,
+    "updatedAt": 814753729.951687
+   },
+   "lumpMonths": 31,
+   "lumpSaved": 971.7646364203406,
+   "months": 41,
+   "never": false,
+   "paid": 2389.219578974663,
+   "payment": 569
+  },
+  {
+   "balance": 30500,
+   "elapsed": 61,
+   "extraMonths": 58,
+   "extraSaved": 1601.0719972769302,
+   "interest": 5472.335687800283,
+   "loan": {
+    "annualInterestRate": 4.99,
+    "createdAt": 814753729.951693,
+    "currentBalanceOverride": 30500,
+    "id": "7832F4CD-A0BB-4643-A94A-57BB9D03850D",
+    "kind": "student",
+    "monthlyPayment": 0,
+    "name": "Student",
+    "originalPrincipal": 42000,
+    "savedExtraMonthlyPayment": 150,
+    "savedLumpSumPayment": 2000,
+    "startDate": 652078800,
+    "termMonths": 120,
+    "updatedAt": 814753729.951693
+   },
+   "lumpMonths": 75,
+   "lumpSaved": 766.3333619993882,
+   "months": 81,
+   "never": false,
+   "paid": 15661.46384800311,
+   "payment": 445.26989914759196
+  },
+  {
+   "balance": 10487.73142155578,
+   "elapsed": 9,
+   "extraMonths": 93,
+   "extraSaved": 0,
+   "interest": 0,
+   "loan": {
+    "annualInterestRate": 24,
+    "createdAt": 814753729.951695,
+    "id": "4F862E93-F5CF-4F32-8E7F-A34572F21E6D",
+    "kind": "personal",
+    "monthlyPayment": 150,
+    "name": "Low",
+    "originalPrincipal": 10000,
+    "startDate": 790149600,
+    "termMonths": 36,
+    "updatedAt": 814753729.951695
+   },
+   "lumpMonths": 67,
+   "lumpSaved": 0,
+   "months": 0,
+   "never": true,
+   "paid": 1350,
+   "payment": 150
+  }
+ ],
+ "now": 814716000,
+ "plans": [
+  {
+   "balance": 132500,
+   "earlier": 65,
+   "edu": 0,
+   "gap": 1111881.9296971145,
+   "health": 0,
+   "later": 65,
+   "plan": {
+    "accountOverrides": {},
+    "annualRaisePercent": 3,
+    "annualSalary": 85000,
+    "contributionPercent": 12,
+    "currentAge": 34,
+    "disclaimerAcknowledgedAt": 814753729.951259,
+    "includesPartner": false,
+    "kids": [],
+    "mode": "traditional",
+    "socialSecurity": {
+     "auto": {}
+    },
+    "stepUpContribution": true,
+    "targetAnnualSpending": 65000,
+    "targetRetirementAge": 65,
+    "updatedAt": 814753729.951259
+   },
+   "projected": 2205262.1072119074,
+   "required": 1093380.177514793,
+   "ss": 531619.8224852071,
+   "status": "onTrack"
+  },
+  {
+   "balance": 410000,
+   "earlier": 62,
+   "edu": 1247534.7411110406,
+   "gap": -805283.1830856781,
+   "health": 215753.69742790126,
+   "later": 60,
+   "plan": {
+    "accountOverrides": {},
+    "annualRaisePercent": 1.5,
+    "annualSalary": 85000,
+    "contributionPercent": 12,
+    "currentAge": 34,
+    "disclaimerAcknowledgedAt": 814753729.951259,
+    "includesPartner": true,
+    "kids": [
+     {
+      "currentAge": 4,
+      "educationCost": 120000,
+      "id": "413B5AB3-DF19-4831-B462-8F6A3F2C9C9F"
+     },
+     {
+      "currentAge": 16,
+      "educationCost": 320000,
+      "id": "3004EFEC-62C6-4EE6-9C3B-1B70B1459975"
+     }
+    ],
+    "mode": "traditional",
+    "socialSecurity": {
+     "custom": {
+      "annualAmount": 18000,
+      "startAge": 62
+     }
+    },
+    "spouseAnnualSalary": 120000,
+    "spouseContributionPercent": 15,
+    "spouseCurrentAge": 52,
+    "spouseSocialSecurity": {
+     "custom": {
+      "annualAmount": 31000,
+      "startAge": 70
+     }
+    },
+    "spouseTargetRetirementAge": 62,
+    "stepUpContribution": true,
+    "targetAnnualSpending": 140000,
+    "targetRetirementAge": 60,
+    "updatedAt": 814753729.95126
+   },
+   "projected": 2966954.959595276,
+   "required": 3772238.142680954,
+   "ss": 1191050.2958579878,
+   "status": "offTrack"
+  },
+  {
+   "balance": 90000,
+   "earlier": 45,
+   "edu": 0,
+   "gap": -537210.0442472077,
+   "health": 182371.74737518752,
+   "later": 45,
+   "plan": {
+    "accountOverrides": {},
+    "annualRaisePercent": 3,
+    "annualSalary": 160000,
+    "contributionPercent": 40,
+    "currentAge": 28,
+    "healthcareAnnualCostPerAdultOverride": 15000,
+    "includesPartner": false,
+    "kids": [],
+    "mode": "fire",
+    "realGrowthRateOverride": 0.06,
+    "socialSecurity": {
+     "disabled": {}
+    },
+    "stepUpContribution": false,
+    "targetAnnualSpending": 60000,
+    "targetRetirementAge": 45,
+    "updatedAt": 814753729.95127
+   },
+   "projected": 1145161.7031279798,
+   "required": 1682371.7473751875,
+   "ss": 0,
+   "status": "offTrack"
+  },
+  {
+   "balance": 600000,
+   "earlier": 67,
+   "edu": 0,
+   "gap": 418505.07728160475,
+   "health": 0,
+   "later": 67,
+   "plan": {
+    "accountOverrides": {},
+    "annualRaisePercent": 3,
+    "annualSalary": 70000,
+    "contributionPercent": 30,
+    "currentAge": 59,
+    "includesPartner": false,
+    "kids": [],
+    "mode": "traditional",
+    "socialSecurity": {
+     "auto": {}
+    },
+    "stepUpContribution": false,
+    "targetAnnualSpending": 50000,
+    "targetRetirementAge": 67,
+    "updatedAt": 814753729.951271
+   },
+   "projected": 1093505.0772816048,
+   "required": 675000,
+   "ss": 575000,
+   "status": "onTrack"
+  }
+ ],
+ "portfolio": {
+  "balance": 368049.1977903361,
+  "free": 1624716000,
+  "interest": 334929.75078827294
+ }
+}
