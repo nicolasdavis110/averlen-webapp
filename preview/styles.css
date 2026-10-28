@@ -186,3 +186,220 @@ dialog{width:min(560px,calc(100% - 32px))}
 @media(max-width:420px){.summary-strip.tight{grid-template-columns:minmax(0,1fr)}}
 .grid{align-items:start}.stack{align-content:start}
 .bars.has-selection .bar-button:not(.selected):not(:hover){opacity:.45}
+
+/* Design refresh: one spacing rhythm, readable type, and layered card surfaces. Later rules here deliberately override the patches above. */
+:root{--gap:24px;--pad:28px;--radius:24px;--radius-sm:16px;--hairline:color-mix(in srgb,var(--line) 85%,transparent);--surface-top:color-mix(in srgb,#fff 75%,var(--card));--card-shadow:0 1px 2px #1b1c1e0a,0 12px 32px -18px #1b1c1e2e;--lift-shadow:0 2px 4px #1b1c1e0d,0 18px 40px -18px #1b1c1e40;--glow:color-mix(in srgb,var(--green) 18%,transparent);--bg:#f1f0ec;font-size:16px}
+:root[data-theme=dark]{--bg:#0a0c10;--surface-top:color-mix(in srgb,#fff 4%,var(--card));--card-shadow:inset 0 1px 0 #ffffff0a,0 20px 44px -28px #000;--lift-shadow:inset 0 1px 0 #ffffff12,0 24px 48px -24px #000;--glow:color-mix(in srgb,var(--green) 11%,transparent);--hairline:#ffffff0f}
+body{line-height:1.45}
+.workspace{background:radial-gradient(1100px 480px at 85% -120px,var(--glow),transparent 70%),radial-gradient(800px 400px at -10% -200px,color-mix(in srgb,var(--chart) 9%,transparent),transparent 70%)}
+
+/* Sidebar */
+.sidebar{background:color-mix(in srgb,var(--card) 55%,var(--bg));border-right:1px solid var(--hairline);padding:28px 16px 18px}
+.brand{font-size:22px;letter-spacing:-.6px;padding:0 10px}
+.workspace-label{font-size:10.5px;letter-spacing:1.3px;margin:40px 12px 12px;font-weight:650;white-space:nowrap}
+nav{gap:4px}
+nav a{padding:11px 14px;gap:12px;font-size:15px;border-radius:12px;transition:background .15s,color .15s}
+nav a:hover{color:var(--text)}
+nav a[aria-current=page]{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--green) 18%,transparent)}
+.settings-link{padding:11px 14px;gap:12px;font-size:15px}
+.profile{margin-top:14px;padding:16px 6px 0;border-top:1px solid var(--hairline)}
+.profile .avatar{width:38px;height:38px;font-size:14px}
+.profile strong{font-size:13px}
+.profile small{font-size:12px;margin-top:2px}
+
+/* Page header */
+.preview-banner{padding:10px 48px;font-size:12.5px;border-bottom:1px solid color-mix(in srgb,var(--green) 14%,transparent);background:color-mix(in srgb,var(--wash) 80%,transparent)}
+.text-button{font-size:13px}
+.topbar{max-width:1280px;padding:44px 48px 30px}
+h1{font-size:36px;letter-spacing:-1.2px;font-weight:700}
+select,input{border-radius:12px;padding:11px 15px;font-size:14px;border-color:var(--hairline);background:var(--card)}
+.toolbar select{border-radius:999px;padding:10px 16px;box-shadow:var(--card-shadow)}
+main{max-width:1280px;padding:0 48px 56px}
+.intro{font-size:15px;margin:-18px 0 30px}
+footer{max-width:1280px;padding:0 48px 36px;font-size:12px}
+
+/* Cards */
+.grid{grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:var(--gap);align-items:stretch}
+.stack,.wealth-layout,.wealth-column,.settings-columns{gap:var(--gap)}
+.card{background:linear-gradient(180deg,var(--surface-top),var(--card) 160px);border:1px solid var(--hairline);border-radius:var(--radius);padding:var(--pad);box-shadow:var(--card-shadow)}
+button.card,.plan-card{transition:transform .18s ease,box-shadow .18s ease,border-color .18s}
+button.card:hover,.plan-card:hover{transform:translateY(-1px);box-shadow:var(--lift-shadow);border-color:color-mix(in srgb,var(--green) 22%,var(--hairline))}
+.section-heading{margin-bottom:22px;align-items:flex-start}
+h2{font-size:18px;letter-spacing:-.35px}
+.card-subtitle{font-size:13px;margin-top:4px}
+.overline{font-size:11px;letter-spacing:1.6px}
+.subtle{font-size:13px;line-height:1.6}
+.legend,.note{font-size:13px;line-height:1.6}
+.section-label{font-size:11px;letter-spacing:1.6px;margin:0}
+.section-label small{font-size:12px;margin-top:3px}
+.wealth-column>.section-label,.settings-column>.section-label{margin:6px 4px calc(12px - var(--gap))}
+.wealth-column .accounts-heading{margin:6px 0 calc(12px - var(--gap)) 4px;align-items:flex-end}
+
+/* Hero numbers */
+.hero{padding:34px 36px;background:radial-gradient(90% 120% at 0% 0%,color-mix(in srgb,var(--green) 15%,transparent),transparent 62%),linear-gradient(180deg,var(--surface-top),var(--card));border-color:color-mix(in srgb,var(--green) 16%,var(--hairline))}
+.hero .overline{font-size:12px}
+.hero-number,.wealth-hero .hero-number{font-size:clamp(48px,5vw,68px);font-weight:700;letter-spacing:-2.6px;line-height:1;margin:16px 0 18px}
+.delta-pill,.change-badge{font-size:13px;padding:6px 12px}
+.stats{margin-top:28px;gap:14px}
+.stat-tile{background:color-mix(in srgb,var(--text) 4%,transparent);border:1px solid var(--hairline);border-radius:var(--radius-sm);padding:18px 20px}
+.stat-tile .stat-label{font-size:11px}
+.stat-tile .stat-value{font-size:26px;letter-spacing:-.6px;margin-top:8px}
+.metric-pills{gap:14px;margin-top:26px}
+.metric-pill{padding:16px 18px;border-radius:var(--radius-sm);background:color-mix(in srgb,var(--text) 4%,transparent);border:1px solid var(--hairline)}
+.metric-pill span{font-size:13px}
+.metric-pill strong{font-size:22px;letter-spacing:-.4px;margin-top:6px}
+.share-pill{font-size:13px;padding:8px 12px;border-radius:999px}
+
+/* Summary strip (Activity, Trends) */
+.summary-strip{gap:var(--gap);margin-bottom:var(--gap)}
+.summary-strip .card{padding:22px 24px}
+.summary-strip .stat-label{font-size:13px;gap:10px}
+.summary-strip .stat-label svg{width:30px;height:30px;padding:7px;border-radius:50%;background:var(--wash);color:var(--green)}
+.summary-strip .stat-value{font-size:30px;letter-spacing:-.9px;font-weight:700;margin-top:14px}
+.summary-strip.tight{gap:12px}
+.summary-strip.tight .stat-label svg{width:24px;height:24px;padding:5px}
+.summary-strip.tight .stat-value{font-size:20px;margin-top:8px}
+
+/* Lists */
+.category-row{grid-template-columns:38px 1fr auto;gap:14px;padding:13px 0}
+.category-row+.category-row,.tx-row,.change-row,.planning-row,.balance-row,.definition{border-color:var(--hairline)}
+.category-icon{width:38px;height:38px}
+.category-name{font-size:14px}
+.category-track{height:6px;margin-top:9px;background:color-mix(in srgb,var(--bg) 80%,transparent)}
+.category-amount{font-size:15px;font-weight:600}
+.category-share{font-size:12px;margin-top:4px}
+.tx-row{grid-template-columns:40px minmax(0,1fr) auto;gap:14px;padding:14px 0}
+.merchant{font-size:14px}
+.tx-meta{font-size:12px;margin-top:3px}
+.tx-amount{font-size:15px;font-weight:600}
+.change-row{padding:16px 0;gap:14px}
+.change-row strong{font-size:14px}
+.change-row small{font-size:12px}
+.change-amount{font-size:15px}
+.comparison-label{font-size:12px}
+
+/* Home: attention and pace */
+.attention{background:linear-gradient(135deg,var(--amber-wash),color-mix(in srgb,var(--amber-wash) 35%,var(--card)));border-color:color-mix(in srgb,var(--amber) 24%,transparent);padding:22px 26px;gap:12px}
+.attention-label{font-size:11px;letter-spacing:1.6px;text-transform:uppercase}
+.attention-body{grid-template-columns:42px 1fr auto}
+.attention-body .category-icon{width:42px;height:42px}
+.attention-body strong{font-size:16px}
+.attention-body small{font-size:13px}
+.projected span{font-size:11px}
+.projected strong{font-size:22px;letter-spacing:-.5px}
+.pace-note{font-size:14px;margin:-6px 0 16px}
+.chart text{font-size:11px}
+.chart-axis,.chart-legend{font-size:12px}
+
+/* Activity */
+.filters{gap:12px;margin-bottom:var(--gap)}
+.search-wrap input{padding:13px 16px 13px 44px;border-radius:14px;box-shadow:var(--card-shadow)}
+.search-wrap svg{top:14px;left:15px}
+.filters select{border-radius:14px;padding:13px 16px;box-shadow:var(--card-shadow)}
+.activity.card{padding:10px var(--pad) 14px}
+.result-count{font-size:12px;margin:14px 0 14px}
+.table-header{font-size:11px;padding-bottom:12px;border-color:var(--hairline)}
+.day-header{font-size:12px;padding:22px 0 8px;border-color:var(--hairline);text-transform:uppercase;letter-spacing:.9px}
+.day-group+.day-group{margin-top:0}
+.activity .tx-row{grid-template-columns:40px minmax(0,1fr) 180px 130px;border-radius:12px;margin:0 -12px;padding:14px 12px;width:calc(100% + 24px);transition:background .12s}
+.activity .tx-row:hover{background:color-mix(in srgb,var(--green) 6%,transparent)}
+.table-category{font-size:13px}
+
+/* Trends */
+.bars{gap:12px}
+.bar-button{background:linear-gradient(180deg,color-mix(in srgb,var(--chart) 62%,var(--card)),color-mix(in srgb,var(--chart) 26%,var(--card)));border-radius:8px 8px 4px 4px;max-width:46px}
+.bar-month{font-size:12px}
+.report-card{padding:24px var(--pad);gap:20px}
+.insight-icon{width:44px;height:44px;border-radius:14px}
+
+/* Wealth */
+.plan-cards{gap:14px}
+.plan-card,.notice-card{background:linear-gradient(180deg,var(--surface-top),var(--card));border:1px solid var(--hairline);border-radius:var(--radius);padding:20px 22px;box-shadow:var(--card-shadow);gap:16px}
+.plan-card strong,.notice-card strong{font-size:17px;letter-spacing:-.3px}
+.plan-card small,.notice-card .subtle{font-size:13px}
+.plan-card .plan-kicker{font-size:13px}
+.plan-icon{width:46px;height:46px}
+.ledger{padding:0}
+.ledger-head{padding:14px 24px;font-size:11px;letter-spacing:1.3px;text-transform:uppercase;border-color:var(--hairline);background:color-mix(in srgb,var(--bg) 35%,transparent)}
+.ledger-group+.ledger-group,.ledger-row+.ledger-row{border-color:var(--hairline)}
+.ledger-head strong{font-size:14px;letter-spacing:0}
+.ledger-row{padding:14px 24px;gap:14px;grid-template-columns:38px minmax(0,1fr) auto 14px}
+.ledger-icon{width:38px;height:38px}
+.ledger-name,.ledger-row>strong{font-size:15px}
+
+/* Settings */
+.settings-stack{gap:var(--gap)}
+.profile-card{padding:24px var(--pad);grid-template-columns:64px minmax(0,1fr) auto;gap:18px}
+.profile-card strong{font-size:20px;letter-spacing:-.4px}
+.profile-card small{font-size:13px}
+.settings-card{padding:6px 0}
+.settings-card .settings-row{padding:15px 24px;gap:16px;grid-template-columns:38px minmax(0,1fr) 14px;transition:background .12s}
+.settings-card .settings-row+.settings-row{border-color:var(--hairline)}
+.settings-row strong{font-size:15px}
+.settings-row small{font-size:13px}
+.settings-icon{width:38px;height:38px;border-radius:12px;background:var(--wash)}
+.settings-footer{font-size:12px}
+
+/* Buttons and dialogs */
+.button{border-radius:12px;padding:12px 18px;font-size:14px;border-color:var(--hairline);transition:border-color .15s,background .15s,transform .15s}
+.button:hover:not(:disabled){border-color:color-mix(in srgb,var(--green) 35%,var(--hairline))}
+.button.primary{box-shadow:0 8px 20px -10px color-mix(in srgb,var(--green) 70%,transparent)}
+.button.primary:hover:not(:disabled){transform:translateY(-1px)}
+dialog{border-radius:28px;padding:32px;border-color:var(--hairline)}
+.form-field label{font-size:13px}
+
+/* Sign-in */
+.auth-form{padding:40px}
+.auth-form>label,.auth-links,.auth-links .text-button,.login-assistance .text-button,.auth-divider{font-size:12px}
+.auth-form .note,.preview-note{font-size:13px}
+.auth-illustration .overline{font-size:11px}
+
+@media(min-width:1500px){:root{--pad:32px;--gap:28px}.hero{padding:38px 40px}}
+@media(max-width:1100px){
+  :root{--pad:24px;--gap:20px}
+  .sidebar{padding:24px 10px 16px}
+  .topbar{padding:34px 28px 26px}
+  main{padding:0 28px 40px}
+  .preview-banner{padding:10px 28px}
+  footer{padding:0 28px 28px}
+  .activity .tx-row{grid-template-columns:40px minmax(0,1fr) 120px 100px}
+  .grid{grid-template-columns:minmax(0,1fr)}
+  .workspace-label{font-size:9px;letter-spacing:.8px}
+}
+@media(max-width:900px){.auth-form{padding:26px}}
+@media(max-width:700px){
+  :root{--pad:20px;--gap:16px;--radius:20px}
+  .workspace{background:radial-gradient(500px 300px at 90% -80px,var(--glow),transparent 70%)}
+  .sidebar{padding:8px 8px max(8px,env(safe-area-inset-bottom));background:color-mix(in srgb,var(--card) 92%,transparent);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+  nav a{padding:8px 4px;font-size:11px;gap:4px;box-shadow:none}
+  .preview-banner{padding:10px 20px;font-size:11px}
+  .topbar{padding:22px 20px 22px}
+  h1{font-size:30px}
+  .toolbar select{padding:9px 12px;font-size:13px}
+  main{padding:0 16px 28px}
+  .intro{font-size:14px;margin:-10px 0 20px}
+  .hero{padding:26px 22px}
+  .hero-number,.wealth-hero .hero-number{font-size:48px;letter-spacing:-2px}
+  .stat-tile{padding:14px 16px}
+  .stat-tile .stat-value{font-size:21px}
+  .summary-strip .card{padding:16px 20px}
+  .summary-strip .stat-value{margin:0;font-size:22px}
+  .summary-strip .stat-label svg{width:26px;height:26px;padding:6px}
+  .activity.card{padding:6px 16px 10px}
+  .activity .tx-row{grid-template-columns:36px minmax(0,1fr) auto;margin:0 -8px;padding:13px 8px;width:calc(100% + 16px)}
+  .tx-row{grid-template-columns:36px minmax(0,1fr) auto;gap:12px}
+  .category-icon{width:36px;height:36px}
+  .attention{padding:18px 20px}
+  .plan-card,.notice-card{padding:16px 18px;gap:12px}
+  .ledger-head,.ledger-row,.settings-card .settings-row{padding-left:16px;padding-right:16px}
+  .profile-card{grid-template-columns:52px minmax(0,1fr) auto;gap:14px}
+  .profile-card .avatar{width:52px;height:52px;font-size:18px}
+  .auth-form{padding:26px}
+  footer{padding:0 20px 20px;font-size:11px}
+  .stats{gap:10px}
+  .metric-pills{gap:10px}
+  .bars{gap:5px}
+  .bar-month{font-size:10px}
+  .report-card{gap:12px}
+  .change-row{gap:10px}
+}
