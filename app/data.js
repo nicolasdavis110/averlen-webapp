@@ -77,7 +77,9 @@ export function normalizeSnapshot(profile, billing, payload) {
       cents: Math.abs(cents(row.amount)), category: category?.id || 'uncategorized',
       income: flag(row.is_income),
       transfer: flag(row.is_internal_transfer) || category?.transfer === true,
-      excluded: category?.excluded === true || (!flag(row.is_income) && categoryRows.find(cat => cat.id === row.category_id)?.default_slug === 'investments' && !includeInvestments),
+      // "Count investments as expenses" off leaves investment money out both
+      // ways, as on iOS: a brokerage or IRA withdrawal is not income.
+      excluded: category?.excluded === true || (categoryRows.find(cat => cat.id === row.category_id)?.default_slug === 'investments' && !includeInvestments),
       trendExcluded: trendExcludedIds.has(row.id.toLowerCase()), note: text(row.note), logo: plaidLogo(row.merchant_logo_url),
     };
   }).sort((a, b) => b.date.localeCompare(a.date));

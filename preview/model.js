@@ -1,4 +1,4 @@
-import { transactions as specs } from './demo.js?v=794615be11';
+import { transactions as specs } from './demo.js?v=aa36c11734';
 
 // This preview is intentionally isolated from authentication, storage, and APIs.
 export const categories = [
@@ -9,7 +9,7 @@ export const categories = [
   { id: 'shopping', name: 'Shopping', color: '#D768A1', icon: 'bag' },
   { id: 'subscriptions', name: 'Subscriptions', color: '#C49423', icon: 'repeat' },
   { id: 'utilities', name: 'Utilities', color: '#299B90', icon: 'bolt' },
-  { id: 'income', name: 'Income', color: '#35795A', icon: 'income' },
+  { id: 'income', name: 'Income', color: '#35795A', icon: 'income', income: true },
 ];
 export const accounts = [
   { id: 'checking', name: 'Everyday Checking', institution: 'First Horizon', mask: '4521', cents: 428732, asset: true, type: 'Cash' },
@@ -54,16 +54,43 @@ export function eligible(rows) { return rows.filter(row => !row.transfer && !row
 export function forMonth(rows, month, throughDay = 31) {
   return eligible(rows).filter(row => row.date.slice(0, 7) === month && Number(row.date.slice(8)) <= throughDay);
 }
+// Same rules as MoneyFlow on iOS. Money in with no category or in Income is
+// income; money in under any other category is a refund that comes off that
+// category's spending (a return, a friend paying you back on Venmo).
+const isIncomeCategory = id => !id || id === 'uncategorized' || categories.find(cat => cat.id === id)?.income === true;
+export function flowOf(row) {
+  if (row.transfer || row.deleted || row.excluded) return 'excluded';
+  if (!row.income) return 'spending';
+  return isIncomeCategory(row.category) ? 'income' : 'refund';
+}
+// What a row adds to a running spending figure (a day on a chart).
+export function spendingChange(row) {
+  const flow = flowOf(row);
+  return flow === 'spending' ? row.cents : flow === 'refund' ? -row.cents : 0;
+}
+// If more came back to a category than went out, it shows nothing spent and
+// the rest counts as income, so income minus spending is still the real net.
+function moneyTotals(rows) {
+  let income = 0, spending = 0;
+  const net = new Map(), byCategory = new Map();
+  for (const row of rows) {
+    const flow = flowOf(row);
+    if (flow === 'income') income += row.cents;
+    else if (flow !== 'excluded') net.set(row.category, (net.get(row.category) || 0) + spendingChange(row));
+  }
+  for (const [category, cents] of net) {
+    if (cents >= 0) { spending += cents; byCategory.set(category, cents); } else income -= cents;
+  }
+  return { income, spending, byCategory };
+}
 export function totals(rows) {
-  return eligible(rows).reduce((sum, row) => {
-    sum[row.income ? 'income' : 'spending'] += row.cents;
-    sum.net = sum.income - sum.spending;
-    return sum;
-  }, { income: 0, spending: 0, net: 0 });
+  const { income, spending } = moneyTotals(rows);
+  return { income, spending, net: income - spending };
 }
 export function categoryTotals(rows) {
+  const { byCategory } = moneyTotals(rows);
   return categories.filter(cat => cat.id !== 'income' && cat.income !== true).map(cat => ({
-    ...cat, cents: eligible(rows).filter(tx => !tx.income && tx.category === cat.id).reduce((sum, tx) => sum + tx.cents, 0),
+    ...cat, cents: byCategory.get(cat.id) || 0,
   })).filter(cat => cat.cents > 0).sort((a, b) => b.cents - a.cents);
 }
 export function wealthTotals(rows = accounts) {
@@ -139,7 +166,7 @@ export function attentionStory(rows, month, today = new Date()) {
 export function pace(rows, month, today = new Date()) {
   const isCurrent = month === localDateKey(today).slice(0, 7), length = daysIn(month);
   const day = isCurrent ? today.getDate() : length;
-  const dailyFor = target => { const out = Array(daysIn(target)).fill(0); eligible(rows).filter(tx => !tx.income && tx.date.slice(0, 7) === target).forEach(tx => { out[Number(tx.date.slice(8)) - 1] += tx.cents; }); return out; };
+  const dailyFor = target => { const out = Array(daysIn(target)).fill(0); eligible(rows).filter(tx => tx.date.slice(0, 7) === target).forEach(tx => { out[Number(tx.date.slice(8)) - 1] += spendingChange(tx); }); return out; };
   let running = 0;
   const current = dailyFor(month).slice(0, day).map(cents => running += cents);
   const result = { length, day, current, spent: running, typical: null, typicalToday: null, projected: null };
@@ -148,7 +175,7 @@ export function pace(rows, month, today = new Date()) {
   for (let offset = 1; offset <= 12; offset++) {
     const target = addMonths(month, -offset);
     if (!isCovered(rows, target)) break;
-    const daily = dailyFor(target), total = daily.reduce((a, b) => a + b, 0);
+    const daily = dailyFor(target), total = totals(forMonth(rows, target)).spending;
     if (total > 0) history.push({ daily, total });
   }
   if (!history.length) return result;
