@@ -14,7 +14,6 @@ export async function createFirebaseAdapter(config) {
     signIn: (email, password) => sdk.signInWithEmailAndPassword(auth, email, password),
     signInApple: () => sdk.signInWithPopup(auth, apple()),
     signOut: () => sdk.signOut(auth),
-    resetPassword: email => sdk.sendPasswordResetEmail(auth, email),
     provider: user => user?.providerData.some(provider => provider.providerId === 'password') ? 'password' : 'apple.com',
     reauthenticate: (user, password) => user.providerData.some(provider => provider.providerId === 'password')
       ? sdk.reauthenticateWithCredential(user, sdk.EmailAuthProvider.credential(user.email, password))

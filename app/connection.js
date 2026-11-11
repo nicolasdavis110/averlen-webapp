@@ -1,4 +1,4 @@
-import { normalizeSnapshot, normalizeBankAccounts } from './data.js?v=aa36c11734';
+import { normalizeSnapshot, normalizeBankAccounts } from './data.js?v=afc583f89c';
 
 export class ConnectionError extends Error {
   constructor(code, status = 0) { super(code); this.code = code; this.status = status; }
@@ -16,6 +16,7 @@ export function safeMessage(error) {
     'auth/operation-not-allowed': 'This sign-in method is not ready on the website yet.',
     'auth/account-exists-with-different-credential': 'Use the sign-in method originally used for your Averlen account.',
     NETWORK: 'Could not reach Averlen. Check your connection and try again.',
+    RATE_LIMITED: 'Too many attempts. Please wait a little and try again.',
     NOT_REGISTERED: 'No existing Averlen account was found. Use the iPhone app to finish setup, then try signing in again.',
     EMAIL_NOT_VERIFIED: 'Verify your email using the link from Averlen, then try again.',
     HOUSEHOLD_CHANGED: 'Your household changed. Reload your account before continuing.',
@@ -129,7 +130,20 @@ export function createConnection({ auth, baseUrl, fetchImpl = fetch, deviceId, o
   return {
     async signIn(email, password) { await auth.signIn(email, password); },
     async signInApple() { await auth.signInApple(); },
-    async resetPassword(email) { await auth.resetPassword(email); },
+    // Server-sent Averlen email, same as the iPhone app. Firebase's own reset
+    // template is locked and still says "Candor" (Nov 10 2026). The server
+    // answers 202 for every address so it never reveals who has an account.
+    async resetPassword(email) {
+      let response;
+      try {
+        response = await fetchImpl(`${baseUrl.replace(/\/$/, '')}/api/auth/password-reset-email`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'X-App-Version': 'web-0.1', 'X-Device-Platform': 'web' },
+          body: JSON.stringify({ email: String(email || '').trim() }),
+          credentials: 'omit', cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(timeoutMs),
+        });
+      } catch { throw new ConnectionError('NETWORK'); }
+      if (!response.ok) throw new ConnectionError(response.status === 429 ? 'RATE_LIMITED' : 'REQUEST_FAILED', response.status);
+    },
     async refresh() { return load(auth.currentUser()); },
     async signOut() { clear(); await auth.signOut(); },
     provider() { return auth.provider(auth.currentUser()); },

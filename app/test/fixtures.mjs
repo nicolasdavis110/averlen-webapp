@@ -39,7 +39,7 @@ export function fakeAuth() {
     async signOut() { calls.push('sign-out'); this.switchUser(); },
     async token(target, fresh) { calls.push(fresh ? 'fresh-token' : 'token'); return `test-token-${target.uid}`; },
     async reauthenticate(target) { calls.push('reauthenticate'); await this.beforeReauthenticate?.(); },
-    provider: () => 'password', async resetPassword() {},
+    provider: () => 'password',
   };
 }
 export function fakeServer(data = fixture()) {

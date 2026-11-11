@@ -140,3 +140,26 @@ test('an HTML gateway error on records keeps account controls and marks records 
   assert.equal(events.at(-1).data.transactions.length, 0);
   connection.dispose();
 });
+test('password reset asks the server for the Averlen email, without a sign-in token', async () => {
+  const auth = fakeAuth(), calls = [];
+  const connection = createConnection({ auth, baseUrl: 'https://backend.example/', deviceId: async () => 'device', onState: () => {}, fetchImpl: async (url, options) => {
+    calls.push({ url, ...options, body: JSON.parse(options.body) });
+    return { ok: true, status: 202, json: async () => ({ status: 'accepted' }) };
+  } });
+  await connection.resetPassword('  person@example.com ');
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].url, 'https://backend.example/api/auth/password-reset-email');
+  assert.equal(calls[0].method, 'POST');
+  assert.deepEqual(calls[0].body, { email: 'person@example.com' });
+  assert.equal(calls[0].headers.Authorization, undefined);
+  assert.equal(calls[0].credentials, 'omit');
+  connection.dispose();
+});
+test('password reset failures become readable messages', async () => {
+  const make = fetchImpl => createConnection({ auth: fakeAuth(), baseUrl: 'https://backend.example', deviceId: async () => 'device', onState: () => {}, fetchImpl });
+  const limited = make(async () => ({ ok: false, status: 429, json: async () => ({}) }));
+  await assert.rejects(limited.resetPassword('a@example.com'), error => error.code === 'RATE_LIMITED' && /Too many attempts/.test(safeMessage(error)));
+  const offline = make(async () => { throw new TypeError('Failed to fetch'); });
+  await assert.rejects(offline.resetPassword('a@example.com'), error => error.code === 'NETWORK');
+  limited.dispose(); offline.dispose();
+});
