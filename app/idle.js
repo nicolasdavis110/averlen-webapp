@@ -25,7 +25,12 @@ export function createIdleGuard({
       const last = read();
       return last != null && now() - last > timeoutMs;
     },
+    // Activity refreshes the clock only if the session hasn't already run
+    // out: after a laptop sleeps with the tab open, the first click must
+    // sign out, not quietly extend the session. `force` is for the moment
+    // right after sign-in or a load-time check, when expiry was just handled.
     touch(force = false) {
+      if (!force && this.check()) return;
       const at = now();
       if (!force && at - lastWrite < WRITE_EVERY_MS) return;
       lastWrite = at; write(at);

@@ -46,3 +46,15 @@ test('only a timestamp is stored', () => {
   createIdleGuard({ storage, now: () => 42, onExpire() {} }).touch(true);
   assert.deepEqual([...storage.map.entries()], [[ACTIVITY_KEY, '42']]);
 });
+
+test('the first click after a long sleep signs out instead of extending the session', () => {
+  let now = 10_000_000; let expired = 0; const storage = memoryStorage();
+  const idle = createIdleGuard({ storage, now: () => now, onExpire: () => expired++ });
+  idle.touch(true);
+  // Laptop sleeps with the tab open: no timer runs, then a click on waking.
+  now += IDLE_TIMEOUT_MS + 5 * 60 * 1000;
+  idle.touch();
+  assert.equal(expired, 1);
+  // The 60-second timer that fires next must not count it twice.
+  assert.equal(idle.check(), false); assert.equal(expired, 1);
+});

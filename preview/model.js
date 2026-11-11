@@ -1,4 +1,4 @@
-import { transactions as specs } from './demo.js?v=7ef569bb60';
+import { transactions as specs } from './demo.js?v=5b6167e027';
 
 // This preview is intentionally isolated from authentication, storage, and APIs.
 export const categories = [
