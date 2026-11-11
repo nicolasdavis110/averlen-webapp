@@ -163,3 +163,22 @@ test('password reset failures become readable messages', async () => {
   await assert.rejects(offline.resetPassword('a@example.com'), error => error.code === 'NETWORK');
   limited.dispose(); offline.dispose();
 });
+test('every bank\'s balance is requested at once and results keep the listed order', async () => {
+  const data = fixture();
+  data.items.push({ item_id: 'item-2', institution_name: 'Second Bank', can_manage: true });
+  data.balances['item-2'] = { accounts: [{ id: 'acct-savings', name: 'Savings', type: 'depository', subtype: 'savings', mask: '3333', balances: { current: 10, iso_currency_code: 'USD' } }] };
+  const server = fakeServer(data);
+  let inFlight = 0, peak = 0;
+  const fetchImpl = async (url, options) => {
+    if (!new URL(url).pathname.endsWith('/get_balances')) return server.fetchImpl(url, options);
+    inFlight += 1; peak = Math.max(peak, inFlight);
+    // The first bank answers last, so order must come from the list, not timing.
+    await new Promise(resolve => setTimeout(resolve, JSON.parse(options.body).item_id === 'item-1' ? 20 : 0));
+    inFlight -= 1;
+    return server.fetchImpl(url, options);
+  };
+  const { events, connection } = await setup(data, { fetchImpl });
+  assert.equal(peak, 2);
+  assert.deepEqual(events.at(-1).data.bankAccounts.map(account => account.id), ['acct-checking', 'acct-card', 'acct-savings']);
+  connection.dispose();
+});

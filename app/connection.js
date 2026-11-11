@@ -1,4 +1,4 @@
-import { normalizeSnapshot, normalizeBankAccounts } from './data.js?v=83a2d57e3f';
+import { normalizeSnapshot, normalizeBankAccounts } from './data.js?v=7ef569bb60';
 
 export class ConnectionError extends Error {
   constructor(code, status = 0) { super(code); this.code = code; this.status = status; }
@@ -105,8 +105,10 @@ export function createConnection({ auth, baseUrl, fetchImpl = fetch, deviceId, o
         try {
           const listed = await request('/list_connected_accounts', { method: 'POST', context, body: {} });
           if (!Array.isArray(listed.items)) throw new ConnectionError('INVALID_BALANCES');
-          const items = [];
-          for (const item of listed.items.slice(0, 10)) items.push({ item, response: await request('/get_balances', { method: 'POST', context, body: { item_id: item.item_id } }) });
+          // Ask every bank at once (each Plaid balance read can take seconds),
+          // keeping the listed order. One failure still hides all balances, as
+          // before, so a partial total is never shown as the whole picture.
+          const items = await Promise.all(listed.items.slice(0, 10).map(async item => ({ item, response: await request('/get_balances', { method: 'POST', context, body: { item_id: item.item_id } }) })));
           normalized.bankAccounts = normalizeBankAccounts(items);
         } catch (error) {
           if (error.code === 'SESSION_CHANGED') throw error;

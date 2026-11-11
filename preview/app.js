@@ -1,5 +1,5 @@
-import { categories, accounts, localDateKey, addMonths, makeDemo, forMonth, totals, categoryTotals, makeWealthHistory, deletionPolicy, monthChange, attentionStory, pace, trendsComparison, monthlySeries } from './model.js?v=83a2d57e3f';
-import { RETIREMENT, demoRetirementPlan, parseRetirementPlan, retirementProjection, retirementEligibleBalance, statusLabel, parseLoans, demoLoans, loanResult, payoffScenario, debtPortfolio, loanKindName, parseOwnership, ownershipLens } from './planning.js?v=83a2d57e3f';
+import { categories, accounts, localDateKey, addMonths, makeDemo, forMonth, totals, categoryTotals, makeWealthHistory, deletionPolicy, monthChange, attentionStory, pace, trendsComparison, monthlySeries } from './model.js?v=7ef569bb60';
+import { RETIREMENT, demoRetirementPlan, parseRetirementPlan, retirementProjection, retirementEligibleBalance, statusLabel, parseLoans, demoLoans, loanResult, payoffScenario, debtPortfolio, loanKindName, parseOwnership, ownershipLens } from './planning.js?v=7ef569bb60';
 
 const paths = {
   home: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/>',
@@ -67,9 +67,12 @@ const longMonth = month => new Date(`${month}-01T12:00:00`).toLocaleDateString('
 const dateLabel = iso => new Date(`${iso}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 const monthLabel = month => new Date(`${month}-01T12:00:00`).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 const shortMonth = month => new Date(`${month}-01T12:00:00`).toLocaleDateString('en-US', { month: 'short' });
-const today = new Date();
-const asOf = localDateKey(today);
-const currentMonth = asOf.slice(0, 7);
+// A tab can stay open past midnight, or into a new month. These are
+// refreshed by refreshClock() on every render, so "today", month to date and
+// pace never stay stuck on the day the page loaded.
+let today = new Date();
+let asOf = localDateKey(today);
+let currentMonth = asOf.slice(0, 7);
 const isLivePage = document.documentElement.dataset.mode === 'live';
 const demoCategories = categories.map(category => ({ ...category }));
 let liveConnection = null, liveConfiguration = null;
@@ -162,6 +165,8 @@ function activity() {
   document.querySelector('#search').addEventListener('input', event => { state.query = event.target.value; activityRows(); });
   document.querySelector('#category-filter').addEventListener('change', event => { state.category = event.target.value; activityRows(); });
   document.querySelector('#type-filter').addEventListener('change', event => { state.type = event.target.value; activityRows(); });
+  const skipped = state.liveData?.skippedTransactions || 0;
+  if (skipped) main.insertAdjacentHTML('beforeend', `<p class="note">${skipped === 1 ? '1 saved transaction couldn’t be read' : `${skipped} saved transactions couldn’t be read`} and isn’t shown here. It’s still on your iPhone.</p>`);
   activityRows();
 }
 function activityRows() {
@@ -455,7 +460,27 @@ function account() {
   }
   main.innerHTML = `<p class="intro">You’re in control of your account and saved information.</p><div class="grid"><section class="card">${header('Your account', 'Sample account · solo household')}<div class="definition"><span>Household role</span><strong>Owner · 1 member</strong></div><div class="definition"><span>Account access</span><strong>Preview only</strong></div><div class="button-row"><button class="button" data-action="export-sample">Export sample data</button><button class="button" data-action="logout">Sign out</button></div><p class="note">Viewing, exporting, and deleting an account remain accessible even without an active plan.</p></section><section class="card">${header('Subscription')}<p class="subtle">Subscriptions purchased through Apple are managed with Apple. Deleting an Averlen account does not cancel its App Store subscription.</p><div class="button-row"><a href="https://apps.apple.com/account/subscriptions" class="button" target="_blank" rel="noopener">Manage Apple subscription ↗</a></div></section><section class="card danger-zone full">${header('Delete account', 'This preview lets you explore the confirmation steps')}<p class="subtle">Real deletion must verify your identity, disconnect your bank connections, and remove your account’s data. A shared household owner must transfer ownership first so their partner’s account and data remain available.</p><div class="button-row"><button class="button danger" data-action="delete-account">Preview account deletion</button></div></section></div>`;
 }
+// Returns true when the calendar day changed since the last call. A person
+// viewing the current month follows it into the new month; a person looking
+// back at an older month stays there.
+function refreshClock() {
+  const now = new Date();
+  const key = localDateKey(now);
+  today = now;
+  if (key === asOf) return false;
+  const month = key.slice(0, 7);
+  const followed = state.month === currentMonth;
+  asOf = key;
+  if (month !== currentMonth) {
+    currentMonth = month;
+    if (!months.includes(month)) { months.push(month); months.sort().reverse(); }
+    if (followed) state.month = month;
+    updateMonths();
+  }
+  return true;
+}
 function render() {
+  refreshClock();
   const titles = { login: 'Sign in', home: 'Home', activity: 'Activity', trends: 'Trends', wealth: 'Wealth', settings: 'Settings', account: 'Your account' };
   document.querySelector('.layout').classList.toggle('auth-mode', state.route === 'login');
   document.querySelector('#page-title').textContent = titles[state.route];
@@ -651,6 +676,8 @@ function downloadJson(data, filename) {
 }
 document.querySelector('#month').innerHTML = months.map(month => `<option value="${month}">${monthLabel(month)}</option>`).join('');
 document.querySelector('#month').value = state.month;
+// Redraw when someone returns to a tab left open overnight.
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && refreshClock() && state.route !== 'login') render(); });
 document.querySelector('#month').addEventListener('change', event => { state.month = event.target.value; render(); announce(`Showing ${monthLabel(state.month)}.`); });
 document.querySelector('#about-preview').addEventListener('click', openAbout);
 document.querySelector('#close-dialog').addEventListener('click', () => dialog.close());

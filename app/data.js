@@ -69,10 +69,26 @@ export function normalizeSnapshot(profile, billing, payload) {
   const includeInvestments = preferences.get('candor_include_investments') === true;
   const purges = new Set(rows(changes.transaction_purges || []).map(row => row.id));
   let needsUncategorized = false;
-  const transactions = rows(changes.transactions).filter(row => belongs(row, householdId) && !flag(row.is_deleted) && !purges.has(row.id)).map(row => {
+  // One unreadable transaction (a bad date or amount) used to blank the whole
+  // web app. Skip it and count it instead. Rows from another household, and a
+  // non-boolean is_deleted, still fail the whole snapshot: those mean the
+  // response itself can't be trusted, not that one record is damaged.
+  let skippedTransactions = 0;
+  const transactions = rows(changes.transactions).filter(row => belongs(row, householdId) && !flag(row.is_deleted) && !purges.has(row.id)).flatMap(row => {
+    let converted;
+    try { converted = transactionFromRow(row); } catch (error) {
+      if (!(error instanceof DataError) || error.code === 'HOUSEHOLD_CHANGED') throw error;
+      skippedTransactions += 1;
+      return [];
+    }
+    if (converted.uncategorized) needsUncategorized = true;
+    delete converted.uncategorized;
+    return [converted];
+  }).sort((a, b) => b.date.localeCompare(a.date));
+  function transactionFromRow(row) {
     const category = categoryMap.get(row.category_id);
-    if (!category) needsUncategorized = true;
     return {
+      uncategorized: !category,
       id: row.id, date: day(row.date), merchant: text(row.merchant_name) || 'Transaction',
       cents: Math.abs(cents(row.amount)), category: category?.id || 'uncategorized',
       income: flag(row.is_income),
@@ -82,7 +98,7 @@ export function normalizeSnapshot(profile, billing, payload) {
       excluded: category?.excluded === true || (categoryRows.find(cat => cat.id === row.category_id)?.default_slug === 'investments' && !includeInvestments),
       trendExcluded: trendExcludedIds.has(row.id.toLowerCase()), note: text(row.note), logo: plaidLogo(row.merchant_logo_url),
     };
-  }).sort((a, b) => b.date.localeCompare(a.date));
+  }
   if (needsUncategorized) categories.push({ id: 'uncategorized', name: 'Uncategorized', color: '#6C6E73', icon: 'bag' });
   const accounts = rows(changes.manual_accounts).filter(row => belongs(row, householdId) && !flag(row.is_deleted)).map(row => ({
     id: row.id, name: text(row.name) || 'Manual account', cents: flag(row.is_asset) ? cents(row.balance) : Math.abs(cents(row.balance)),
@@ -101,7 +117,7 @@ export function normalizeSnapshot(profile, billing, payload) {
   }
   return {
     profile, billing: { hasAccess: billing.has_access === true, status: text(billing.status), expiresAt: billing.access_expires_at || null, isPurchaser: billing.is_purchaser === true ? true : billing.is_purchaser === false ? false : null, productId: text(billing.product_id), trialEndsAt: billing.trial_ends_at || null },
-    transactions, categories, accounts, history: [...historyByDate.values()].sort((a, b) => a.date.localeCompare(b.date)), householdId,
+    transactions, skippedTransactions, categories, accounts, history: [...historyByDate.values()].sort((a, b) => a.date.localeCompare(b.date)), householdId,
     // Planning blobs are parsed by preview/planning.js, which rejects any
     // shape the app itself would not accept.
     plans: {

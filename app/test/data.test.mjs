@@ -97,3 +97,20 @@ test('only https Plaid logos are kept, like PlaidRemoteLogo on iOS', () => {
     assert.equal(normalizeSnapshot(data.profile, data.billing, data.payload).transactions.find(tx => tx.id === a.id).logo, '');
   }
 });
+test('one unreadable transaction is skipped and counted instead of blanking every record', () => {
+  const data = fixture(), rows = data.payload.changes.transactions;
+  rows.push({ ...rows[0], id: 'bad-date', date: '2026-02-30' }, { ...rows[0], id: 'bad-amount', amount: '1,000' }, { ...rows[0], id: 'bad-flag', is_income: 'yes' });
+  const normalized = normalizeSnapshot(data.profile, data.billing, data.payload);
+  assert.equal(normalized.skippedTransactions, 3);
+  assert.deepEqual(normalized.transactions.map(row => row.id).sort(), ['tx-1', 'tx-2']);
+  assert.equal('uncategorized' in normalized.transactions[0], false);
+});
+test('a clean snapshot reports no skipped transactions', () => {
+  const data = fixture();
+  assert.equal(normalizeSnapshot(data.profile, data.billing, data.payload).skippedTransactions, 0);
+});
+test('a malformed transaction from another household still fails the whole snapshot', () => {
+  const data = fixture(), rows = data.payload.changes.transactions;
+  rows.push({ ...rows[0], id: 'foreign-bad', household_id: 'other', date: 'nope' });
+  assert.throws(() => normalizeSnapshot(data.profile, data.billing, data.payload), { code: 'HOUSEHOLD_CHANGED' });
+});
