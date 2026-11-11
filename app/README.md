@@ -18,7 +18,9 @@ an isolated checkout of that exact commit and contains no runtime secrets.
 
 - Existing Firebase accounts only. Email/password and Apple adapter methods;
   no registration, automatic account linking, or subscription purchase.
-- SDK authentication persists across restarts, as the product requires.
+- SDK authentication persists across restarts, as the product requires, but
+  `idle.js` signs out after 30 minutes without activity, also when a closed tab
+  is reopened later. It stores only the time of the last activity.
   Financial records, account snapshots, plan state, and form passwords are not
   written to browser storage. Only the SDK's authentication state and a random
   device identifier per account are persisted. Do not add service workers or

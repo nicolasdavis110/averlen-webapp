@@ -1,7 +1,8 @@
-import { configuration } from './config.js?v=b1d86c7891';
-import { createFirebaseAdapter } from './firebase.js?v=b1d86c7891';
-import { createConnection, safeMessage } from './connection.js?v=b1d86c7891';
-import { attachLiveConnection } from '../preview/app.js?v=b1d86c7891';
+import { configuration } from './config.js?v=83a2d57e3f';
+import { createFirebaseAdapter } from './firebase.js?v=83a2d57e3f';
+import { createConnection, safeMessage } from './connection.js?v=83a2d57e3f';
+import { attachLiveConnection } from '../preview/app.js?v=83a2d57e3f';
+import { createIdleGuard } from './idle.js?v=83a2d57e3f';
 
 async function deviceId(uid) {
   const key = `averlen.web.device.${uid}`;
@@ -18,6 +19,16 @@ if (!configuration.enabled || window.top !== window.self || !configuration.allow
 } else {
   try {
     const auth = await createFirebaseAdapter(configuration.firebase);
+    let storage = null; try { storage = localStorage; } catch { /* blocked */ }
+    const idle = createIdleGuard({ storage, onExpire: () => { void auth.signOut().catch(() => {}); } });
+    // A tab reopened after the limit starts signed out, before any data loads.
+    if (idle.expired()) await auth.signOut().catch(() => {});
+    idle.touch(true);
+    for (const type of ['pointerdown', 'keydown', 'wheel', 'touchstart']) {
+      addEventListener(type, () => idle.touch(), { passive: true, capture: true });
+    }
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && !idle.check()) idle.touch(); });
+    setInterval(() => idle.check(), 60 * 1000);
     attachLiveConnection(configuration, onState => createConnection({
       auth, baseUrl: configuration.backendUrl, deviceId, onState,
     }), safeMessage);
