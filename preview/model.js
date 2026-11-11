@@ -1,4 +1,4 @@
-import { transactions as specs } from './demo.js?v=f6e114719d';
+import { transactions as specs } from './demo.js?v=b1d86c7891';
 
 // This preview is intentionally isolated from authentication, storage, and APIs.
 export const categories = [
@@ -182,11 +182,15 @@ export function pace(rows, month, today = new Date()) {
   const totalsList = history.map(row => row.total);
   const [low, high] = history.length >= 3 ? iqrBounds(totalsList) : [-Infinity, Infinity];
   const kept = history.filter(row => row.total >= low && row.total <= high);
-  let cumulative = 0;
-  result.typical = Array.from({ length }, (_, i) => {
-    const samples = kept.filter(row => i < row.daily.length);
-    return cumulative += samples.length ? samples.reduce((sum, row) => sum + row.daily[i], 0) / samples.length : 0;
-  }).map(Math.round);
+  // Each history month becomes its own running total first, then those are
+  // averaged (matches iPhone 803006d). Averaging day-by-day changes instead
+  // let 28-31 day months drop or double-count month-end spending and could
+  // pull the line below zero. Last day lines up with last day: an Oct 31 bill
+  // counts by Nov 30; a shorter month holds its total through its extra days.
+  const keptCumulative = kept.map(row => { let sum = 0; return row.daily.map(cents => sum += cents); });
+  const onDay = (cum, dayNumber) => dayNumber >= length ? cum.at(-1) : cum[Math.min(dayNumber, cum.length) - 1];
+  result.typical = Array.from({ length }, (_, i) =>
+    Math.round(keptCumulative.reduce((sum, cum) => sum + onDay(cum, i + 1), 0) / keptCumulative.length));
   result.typicalToday = result.typical[day - 1];
   const typicalMonth = trimmedMean(totalsList);
   if (day >= 5 && typicalMonth != null) {

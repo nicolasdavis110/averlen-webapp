@@ -1,0 +1,21 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # No dependencies to install: the tests use only Node's built-ins.
+      # version.test.mjs also fails if `node scripts/stamp-version.mjs` was skipped.
+      - run: node --test app/test/*.test.mjs preview/*.test.mjs

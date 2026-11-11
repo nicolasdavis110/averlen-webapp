@@ -108,6 +108,27 @@ test('pace builds a typical curve from covered months, drops outliers, and caps 
   assert.equal(result.projected, 60000, 'never below what is already spent, ratio capped at 1.5x');
   assert.equal(pace(rows, '2026-09', new Date(2026, 9, 10, 12)).typical, null);
 });
+test('pace lines up month ends across 28-31 day months and never dips below zero', () => {
+  const at = (y, m, d) => new Date(y, m - 1, d, 12);
+  const ends = (result, cents, what) => {
+    assert.ok(result.typical.every(v => v >= 0), `${what}: typical line went below zero`);
+    assert.equal(result.typical.length, result.length, `${what}: one point per day`);
+    assert.equal(result.typical.at(-1), cents, `${what}: line end`);
+  };
+  // Sep 30 + Oct 31 bills into 30-day November: $1,000, not $500 or $1,500.
+  const a = pace([day('2026-09-30', 100000), day('2026-10-31', 100000), day('2026-11-30', 100000)], '2026-11', at(2026, 11, 30));
+  ends(a, 100000, 'month-end bills into a 30-day month');
+  assert.equal(a.projected, 100000, 'last-day forecast equals what was spent');
+  // Oct 31 + Nov 30 bills into 31-day December.
+  ends(pace([day('2026-10-31', 100000), day('2026-11-30', 100000)], '2026-12', at(2026, 12, 7)), 100000, 'into a 31-day month');
+  // A late refund in a 31-day month can't drag the line below zero.
+  ends(pace([day('2026-10-01', 200000), { ...day('2026-10-31', 190000), income: true }, day('2026-11-01', 100000), day('2026-12-01', 10000)], '2026-12', at(2026, 12, 7)), 55000, 'late refund');
+  // February history into March, and 31-day months into February.
+  ends(pace([day('2026-01-31', 60000), day('2026-02-28', 60000), day('2026-03-10', 5000)], '2026-03', at(2026, 3, 10)), 60000, 'Feb + Jan into March');
+  const e = pace([day('2026-12-31', 90000), day('2027-01-31', 90000), day('2027-02-10', 5000)], '2027-02', at(2027, 2, 10));
+  ends(e, 90000, '31-day months into February');
+  assert.equal(e.typical[26], 0, 'Feb 27 is before the month-end bill');
+});
 test('trends compares with the typical month to date and labels the baseline', () => {
   const rows = [day('2026-08-01', 4000), day('2026-08-05', 8000, 'shopping'), day('2026-09-01', 6000), day('2026-09-05', 2000, 'shopping'), day('2026-09-20', 99999, 'shopping'), day('2026-10-01', 9000), day('2026-10-02', 1000, 'shopping')];
   const result = trendsComparison(rows, '2026-10', new Date(2026, 9, 10, 12));
