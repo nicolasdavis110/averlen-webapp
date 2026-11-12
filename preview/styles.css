@@ -109,8 +109,8 @@ footer { padding: 0 40px 28px; max-width: 1392px; margin: auto; display: flex; j
 .right { text-align: right; }
 
 /* Home: one primary financial story, with supporting detail beside it. */
-.home-layout { display: grid; grid-template-columns: minmax(0,1.65fr) minmax(0,1fr); gap: var(--gap); grid-template-areas: 'overview categories' 'attention categories' 'comingup categories' 'recent recent'; align-items: start; }
-.home-layout.no-attention { grid-template-areas: 'overview categories' 'comingup categories' 'recent recent'; }
+.home-layout { display: grid; grid-template-columns: minmax(0,1.65fr) minmax(0,1fr); gap: var(--gap); grid-template-areas: 'overview categories' 'attention categories' 'comingup categories' 'subs categories' 'recent recent'; align-items: start; }
+.home-layout.no-attention { grid-template-areas: 'overview categories' 'comingup categories' 'subs categories' 'recent recent'; }
 .compact-breakdown .home-categories { align-self: start; }
 .home-overview { grid-area: overview; padding: 30px 32px 24px; }
 .overview-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -186,6 +186,25 @@ footer { padding: 0 40px 28px; max-width: 1392px; margin: auto; display: flex; j
 .coming-up-change-open strong { display: block; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
 .coming-up-change-open small { display: block; color: var(--muted); font-size: 12px; line-height: 1.6; margin-top: 4px; }
 .muted-button { color: var(--muted); margin-top: 6px; }
+/* Subscriptions (recurringSection on iOS) */
+.home-subscriptions { grid-area: subs; width: 100%; text-align: left; color: var(--text); font: inherit; display: grid; grid-template-columns: 42px minmax(0,1fr) auto; gap: 14px; align-items: start; cursor: pointer; }
+.home-subscriptions:hover { border-color: var(--green); }
+.subscriptions-icon { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; background: var(--positive-wash); color: var(--green); }
+.subscriptions-icon svg { width: 18px; height: 18px; }
+.subscriptions-copy strong { display: block; font-size: 15px; font-weight: 600; }
+.subscriptions-copy small { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; line-height: 1.5; }
+.subscriptions-copy .subscriptions-count { font-weight: 600; }
+.subscriptions-side { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.subscriptions-side strong { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.subscriptions-logos { display: flex; align-items: center; }
+.subscriptions-logos .category-icon { width: 28px; height: 28px; margin-left: -8px; border: 2px solid var(--card); border-radius: 50%; }
+.subscriptions-logos .category-icon:first-child { margin-left: 0; }
+.subscriptions-logos .category-icon svg { width: 13px; height: 13px; }
+.subscriptions-logos .chevron { margin-left: 8px; font-size: 18px; }
+.subscriptions-summary { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 16px 18px; margin-bottom: 14px; }
+.subscriptions-summary small { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; font-weight: 600; }
+.subscriptions-summary strong { font-size: 15px; font-weight: 600; }
+.subscriptions-list .amount { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .attention .insight-icon { color: var(--amber); background: color-mix(in srgb,var(--amber) 10%,transparent); }
 .attention-label { display: block; color: var(--amber); font-weight: 650; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 5px; }
 .attention-copy strong { font-size: 13px; font-weight: 550; display: block; }
@@ -490,8 +509,8 @@ dialog select, #delete-confirmation { width: 100%; }
   .auth-story h2 { letter-spacing: -2px; }
 }
 @media(max-width:1000px) {
-  .home-layout { grid-template-columns: minmax(0,1fr); grid-template-areas: 'overview' 'attention' 'comingup' 'categories' 'recent'; }
-  .home-layout.no-attention { grid-template-areas: 'overview' 'comingup' 'categories' 'recent'; }
+  .home-layout { grid-template-columns: minmax(0,1fr); grid-template-areas: 'overview' 'attention' 'comingup' 'subs' 'categories' 'recent'; }
+  .home-layout.no-attention { grid-template-areas: 'overview' 'comingup' 'subs' 'categories' 'recent'; }
   .grid, .wealth-layout, .settings-columns { grid-template-columns: minmax(0,1fr); }
   .home-categories .category-row { padding: 15px 0; }
   .home-recent .section-heading { margin-bottom: 16px; }

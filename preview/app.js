@@ -1,6 +1,7 @@
-import { categories, accounts, localDateKey, addMonths, makeDemo, forMonth, totals, categoryTotals, makeWealthHistory, deletionPolicy, monthChange, attentionStory, pace, trendsComparison, monthlySeries, flowOf } from './model.js?v=9a62b2dd7a';
-import { generate as moneyAhead, moneyAheadInputs, webTransactions, dayNumber, dayKey } from './money-ahead.js?v=9a62b2dd7a';
-import { RETIREMENT, demoRetirementPlan, parseRetirementPlan, retirementProjection, retirementEligibleBalance, statusLabel, parseLoans, demoLoans, loanResult, payoffScenario, debtPortfolio, loanKindName, parseOwnership, ownershipLens } from './planning.js?v=9a62b2dd7a';
+import { categories, accounts, localDateKey, addMonths, makeDemo, forMonth, totals, categoryTotals, makeWealthHistory, deletionPolicy, monthChange, attentionStory, pace, trendsComparison, monthlySeries, flowOf } from './model.js?v=c5729769d0';
+import { generate as moneyAhead, moneyAheadInputs, webTransactions, dayNumber, dayKey } from './money-ahead.js?v=c5729769d0';
+import { detectSubscriptions, subscriptionInputs, monthlyEquivalent } from './subscriptions.js?v=c5729769d0';
+import { RETIREMENT, demoRetirementPlan, parseRetirementPlan, retirementProjection, retirementEligibleBalance, statusLabel, parseLoans, demoLoans, loanResult, payoffScenario, debtPortfolio, loanKindName, parseOwnership, ownershipLens } from './planning.js?v=c5729769d0';
 
 const paths = {
   home: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/>',
@@ -207,6 +208,43 @@ function showComingUpHistory(id) {
   openDialog(item.merchant, `<button class="text-button" data-coming-up-back>← Coming up</button><p class="subtle">Recorded transactions behind this estimate or change.</p><div class="transaction-list">${found.map(tx => txRow(tx)).join('') || empty('These transactions are no longer available.')}</div>`);
 }
 
+// MARK: Subscriptions (recurringSection / recurringDetailsSheet in HomeView on iOS)
+let subscriptionsCache = { key: '', items: [] };
+function subscriptionItems() {
+  const live = state.liveData;
+  // Today for this month; the end of the month for a past one, as on iOS.
+  const referenceAt = state.month === currentMonth ? Date.now() : new Date(Number(state.month.slice(0, 4)), Number(state.month.slice(5, 7)), 0).getTime();
+  const key = [state.month === currentMonth ? asOf : state.month, rows.length, live ? live.householdId : 'sample', rows.map(row => row.category).join()].join('|');
+  if (subscriptionsCache.key === key && subscriptionsCache.liveData === live) return subscriptionsCache.items;
+  const items = detectSubscriptions(subscriptionInputs(rows), {
+    categories, referenceAt, dismissed: live?.plans?.recurring?.dismissed || [], manual: live?.plans?.recurring?.manual || [],
+    // Bills & Utilities are left to Coming up, as on the iPhone.
+    skipCategoryIds: categories.filter(cat => cat.slug === 'bills_utilities').map(cat => cat.id),
+  });
+  subscriptionsCache = { key, liveData: live, items };
+  return items;
+}
+const subscriptionsMonthly = items => money(Math.round(items.reduce((sum, item) => sum + monthlyEquivalent(item), 0) * 100));
+const subscriptionsTitle = items => items.length === 1 ? '1 subscription detected' : `${items.length} subscriptions detected`;
+const subscriptionCategory = item => item.category ? catFor(item.category) : { color: '#A0AEC0', icon: 'clock' };
+function subscriptionsCard() {
+  const items = subscriptionItems();
+  if (!items.length) return '';
+  const names = items.slice(0, 3).map(item => item.merchantName);
+  const detail = names.length === 1 ? `Currently tracking ${names[0]}.` : names.length === 2 ? `Currently tracking ${names[0]} and ${names[1]}.` : `Currently tracking ${names[0]}, ${names[1]}, and ${names[2]}.`;
+  return `<button class="card home-subscriptions" data-action="subscriptions" aria-label="Subscriptions, ${esc(subscriptionsTitle(items))}, ${subscriptionsMonthly(items)} a month. Opens the list">
+    <span class="subscriptions-icon">${icon('repeat')}</span>
+    <span class="subscriptions-copy"><strong>Subscriptions</strong><small class="subscriptions-count">${esc(subscriptionsTitle(items))}</small><small>${esc(detail)}</small></span>
+    <span class="subscriptions-side"><strong>${subscriptionsMonthly(items)}/mo</strong><span class="subscriptions-logos" aria-hidden="true">${items.slice(0, 3).reverse().map(item => catIcon(subscriptionCategory(item), item.logo)).join('')}<span class="chevron">›</span></span></span>
+  </button>`;
+}
+function showSubscriptions() {
+  const items = subscriptionItems();
+  openDialog('Subscriptions', `<div class="subscriptions-summary"><div><strong>Subscriptions</strong><small>${esc(subscriptionsTitle(items))}</small></div><strong>${subscriptionsMonthly(items)}/mo</strong></div>
+    <div class="subscriptions-list">${items.map(item => `<button class="tx-row" data-subscription="${esc(item.merchantName)}" data-subscription-month="${localDateKey(new Date(item.lastAt)).slice(0, 7)}">${catIcon(subscriptionCategory(item), item.logo)}<span><span class="merchant">${esc(item.merchantName)}</span><span class="tx-meta">Last: ${new Date(item.lastAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span></span><span class="amount">${money(Math.round(item.amount * 100))}</span></button>`).join('') || empty('No subscriptions detected.')}</div>
+    <p class="note">Annual and quarterly plans count at their monthly cost in the total. To mark a charge as not a subscription, use the iPhone app.</p>`);
+}
+
 function home() {
   if (state.liveData && !rows.length) { main.innerHTML = '<section class="card account-gate"><h2>No saved transactions yet</h2><p class="note">Open the iPhone app and let it sync. Then reload your saved records here.</p><button class="button" data-action="reload-live">Reload saved records</button></section>'; return; }
   const data = selectedRows();
@@ -233,6 +271,7 @@ function home() {
       <a class="card-link" href="#activity">Explore your activity <span aria-hidden="true">↗</span></a>
     </section>
     ${comingUpCard()}
+    ${subscriptionsCard()}
     ${story ? `<button class="attention home-attention" data-category="${esc(story.id)}"><span class="insight-icon">${icon('spark')}</span><span class="attention-copy"><span class="attention-label">Worth a look</span><strong>${esc(story.name)} changed most</strong><small>${roundMoney(story.delta)} more than ${longMonth(story.prior)}${story.comparison ? ` ${story.comparison}` : ''}</small></span><span class="chevron" aria-hidden="true">↗</span></button>` : ''}
     <section class="card home-recent">${header('Recent activity', 'The details behind your month', '<a class="text-button" href="#activity">View all <span aria-hidden="true">↗</span></a>')}<div class="transaction-list">${data.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5).map(tx => txRow(tx)).join('') || empty('No transactions in this month.')}</div></section>
   </div>`;
@@ -771,13 +810,23 @@ document.addEventListener('click', event => {
       'open-settings': () => navigate('settings'),
       logout: () => { if (isLivePage) { void liveSignOut(); return; } resetSample(); state.session = false; state.pendingRoute = null; state.deletedPreview = false; navigate('login'); },
       'reset-sample': () => { if (isLivePage) { void liveConnection?.refresh(); return; } resetSample(); render(); announce('Sample changes reset.'); },
-      'monthly-report': showMonthlyReport, 'coming-up': () => showComingUp('upcoming'),
+      'monthly-report': showMonthlyReport, 'coming-up': () => showComingUp('upcoming'), subscriptions: showSubscriptions,
       retirement: showRetirement, debt: showDebt, ownership: showOwnership,
       about: openAbout, 'banks-info': () => showSettingsInfo('banks'), 'categories-info': () => showSettingsInfo('categories'),
       'add-account': () => showManualAccount(), 'delete-account': showDeletion, 'export-sample': exportSample,
       'reset-password-info': () => openDialog('Reset your password', '<p class="subtle">The live website will send a reset link to the email on your Averlen account. Email delivery is not connected in this preview, and no message has been sent.</p>'),
     };
     actions[action]?.();
+  }
+  const subscription = event.target.closest('[data-subscription]');
+  if (subscription) {
+    // Like the iPhone: open Activity searching for this merchant.
+    if (dialog.open) dialog.close();
+    state.query = subscription.dataset.subscription; state.category = ''; state.type = '';
+    // Web Activity shows one month at a time, so open the month of the latest charge.
+    if (months.includes(subscription.dataset.subscriptionMonth)) { state.month = subscription.dataset.subscriptionMonth; document.querySelector('#month').value = state.month; }
+    if (location.hash === '#activity') { state.route = 'activity'; render(); } else location.hash = 'activity';
+    return;
   }
   const comingUpTab = event.target.closest('[data-coming-up-tab]');
   if (comingUpTab) { showComingUp(comingUpTab.dataset.comingUpTab); return; }

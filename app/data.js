@@ -28,6 +28,12 @@ function day(value, { calendarDate = false } = {}) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(`${date}T12:00:00Z`)) || new Date(`${date}T12:00:00Z`).toISOString().slice(0, 10) !== date) throw new DataError('INVALID_DATE');
   return date;
 }
+// The exact moment, for Subscriptions, which measures gaps the way the iPhone
+// does (parseServerDate: a date with no time is local midnight).
+function instant(value) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) { const [y, m, d] = value.split('-').map(Number); return new Date(y, m - 1, d).getTime(); }
+  return new Date(value).getTime();
+}
 // Same rule as PlaidRemoteLogo on iOS: only https artwork served by Plaid.
 function plaidLogo(value) {
   if (typeof value !== 'string' || !value) return '';
@@ -91,7 +97,7 @@ export function normalizeSnapshot(profile, billing, payload) {
       uncategorized: !category,
       id: row.id, date: day(row.date), merchant: text(row.merchant_name) || 'Transaction',
       // Coming up reads the name and amount exactly as synced, as the iPhone does.
-      merchantName: text(row.merchant_name), signedCents: cents(row.amount),
+      merchantName: text(row.merchant_name), signedCents: cents(row.amount), at: instant(row.date),
       cents: Math.abs(cents(row.amount)), category: category?.id || 'uncategorized',
       income: flag(row.is_income),
       transfer: flag(row.is_internal_transfer) || category?.transfer === true,
