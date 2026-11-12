@@ -1,5 +1,6 @@
-import { categories, accounts, localDateKey, addMonths, makeDemo, forMonth, totals, categoryTotals, makeWealthHistory, deletionPolicy, monthChange, attentionStory, pace, trendsComparison, monthlySeries } from './model.js?v=5b6167e027';
-import { RETIREMENT, demoRetirementPlan, parseRetirementPlan, retirementProjection, retirementEligibleBalance, statusLabel, parseLoans, demoLoans, loanResult, payoffScenario, debtPortfolio, loanKindName, parseOwnership, ownershipLens } from './planning.js?v=5b6167e027';
+import { categories, accounts, localDateKey, addMonths, makeDemo, forMonth, totals, categoryTotals, makeWealthHistory, deletionPolicy, monthChange, attentionStory, pace, trendsComparison, monthlySeries, flowOf } from './model.js?v=9a62b2dd7a';
+import { generate as moneyAhead, moneyAheadInputs, webTransactions, dayNumber, dayKey } from './money-ahead.js?v=9a62b2dd7a';
+import { RETIREMENT, demoRetirementPlan, parseRetirementPlan, retirementProjection, retirementEligibleBalance, statusLabel, parseLoans, demoLoans, loanResult, payoffScenario, debtPortfolio, loanKindName, parseOwnership, ownershipLens } from './planning.js?v=9a62b2dd7a';
 
 const paths = {
   home: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/>',
@@ -131,6 +132,81 @@ function paceChart(result) {
   return `<div class="pace-plot"><div class="pace-y-axis" aria-hidden="true">${ticks.map(t => `<span style="top:${y(t) / 1.6}%">${compact(t)}</span>`).join('')}</div><svg class="chart pace-chart" viewBox="0 0 500 160" preserveAspectRatio="none" role="img" aria-label="Cumulative ${label}spending: ${money(result.spent)} through day ${day}${typical ? `, typical ${money(result.typicalToday)} by this day` : ''}"><defs><linearGradient id="pace-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--chart)" stop-opacity=".12"/><stop offset="100%" stop-color="var(--chart)" stop-opacity="0"/></linearGradient></defs>${ticks.map(t => `<line class="gridline" x1="0" x2="500" y1="${y(t)}" y2="${y(t)}"/>`).join('')}${typical ? `<polyline class="typical-line" points="0,160 ${path(typical)}"/>` : ''}<polygon points="${line} ${x(current.length - 1).toFixed(1)},160" fill="url(#pace-fill)"/><polyline points="${line}" class="spending-line"/><circle class="pace-dot" cx="${x(current.length - 1)}" cy="${y(current.at(-1) || 0)}" r="3.5"/></svg><div class="pace-x-axis" aria-hidden="true">${days.map(d => `<span style="left:${d / length * 100}%">${d}</span>`).join('')}</div></div>${typical ? '<div class="chart-legend"><span><i class="swatch solid"></i>This month</span><span><i class="swatch dashed"></i>Typical history</span></div>' : ''}`;
 }
 
+// MARK: Coming up (MoneyAheadSection / MoneyAheadViews on iOS)
+let comingUpCache = { key: '', report: null };
+function comingUpReport() {
+  const live = state.liveData;
+  const key = [asOf, rows.length, live ? live.householdId : 'sample', rows.map(row => row.category).join()].join('|');
+  if (comingUpCache.key === key && comingUpCache.liveData === live) return comingUpCache.report;
+  const inputs = moneyAheadInputs(webTransactions(rows, { categoryOf: id => categories.find(cat => cat.id === id), flowOf }), live?.plans?.recurring || {});
+  const report = moneyAhead(inputs, dayNumber(asOf));
+  comingUpCache = { key, liveData: live, report };
+  return report;
+}
+// Dismissed findings stay in this browser for this account, as they stay on one
+// iPhone ("Dismissals are saved on this device for your account").
+const comingUpScope = () => state.liveData ? `${state.liveData.profile.user.id}|${state.liveData.householdId}` : '';
+function comingUpDismissals() { try { const map = JSON.parse(localStorage.getItem('averlen.comingUpDismissals') || '{}'); return map && typeof map === 'object' && !Array.isArray(map) ? map : {}; } catch { return {}; } }
+function saveComingUpDismissals(map) { try { localStorage.setItem('averlen.comingUpDismissals', JSON.stringify(map)); } catch { /* per-browser convenience only */ } }
+function comingUpVisible() {
+  const report = comingUpReport();
+  const scope = comingUpScope();
+  const hidden = new Set(scope ? comingUpDismissals()[scope] || [] : []);
+  return { events: report.events, changes: report.changes.filter(change => !hidden.has(change.id)), hasHidden: report.changes.some(change => hidden.has(change.id)) };
+}
+const exactDollars = amount => exactMoney(Math.round(amount * 100));
+const dayDate = n => dateLabel(dayKey(n));
+function comingUpTotals(events) {
+  const figure = (label, list, positive) => `<div><div class="stat-label">${label}</div><div class="coming-up-figure${list.length ? positive ? ' positive' : '' : ' quiet'}">${list.length ? dollars(list.reduce((sum, event) => sum + event.amount, 0)) : 'Not estimated'}</div></div>`;
+  return `<div class="coming-up-totals">${figure('Estimated bills', events.filter(event => !event.isIncome), false)}${figure('Estimated income', events.filter(event => event.isIncome), true)}</div>`;
+}
+function comingUpCard() {
+  const report = comingUpVisible();
+  const first = report.events[0];
+  const count = report.changes.length;
+  return `<button class="card home-coming-up" data-action="coming-up" aria-label="Coming up. Opens estimated bills, income, and recent changes">
+    <span class="coming-up-heading"><span><strong>Coming up</strong><small>From today · Next 30 days</small></span><span class="chevron" aria-hidden="true">›</span></span>
+    ${first ? `<span class="coming-up-next">${esc(first.merchant)} · ${dayDate(first.date)}</span>${comingUpTotals(report.events)}` : '<span class="subtle coming-up-empty">Your next bills and income will appear as regular patterns emerge.</span>'}
+    ${count ? `<span class="coming-up-review">${icon('search')}${count === 1 ? '1 change to review' : `${count} changes to review`}</span>` : ''}
+  </button>`;
+}
+const changeTitle = change => ({
+  amount: `Latest ${change.isIncome ? 'deposit' : 'charge'} is ${change.amount > (change.previousAmount ?? 0) ? 'higher' : 'lower'}`,
+  possibleDuplicate: 'Two similar charges close together', renewal: 'Annual renewal may be coming up',
+  stopped: change.isIncome ? 'Haven’t seen this deposit lately' : 'Haven’t seen this charge lately', newDeposit: 'New regular deposit',
+}[change.reason]);
+function changeDetail(change) {
+  const amount = exactDollars(change.amount), on = dayDate(change.date);
+  return {
+    amount: `${exactDollars(change.previousAmount ?? 0)} previously → ${amount} on ${on}. This could reflect a price change or a billing adjustment.`,
+    possibleDuplicate: `Two recorded charges of ${amount} within three days. They may be separate purchases—review before taking action.`,
+    renewal: `Around ${on}, based on the last two annual charges. Last recorded amount: ${amount}.`,
+    stopped: `Last recorded: ${amount} on ${on}.${change.isIncome ? ' It may have changed name or moved to another account.' : ' It may have been cancelled or moved to another account.'}`,
+    newDeposit: `Deposits about two weeks apart, most recently ${amount} on ${on}.`,
+  }[change.reason];
+}
+function showComingUp(tab = state.comingUpTab || 'upcoming') {
+  state.comingUpTab = tab;
+  const report = comingUpVisible();
+  const live = Boolean(state.liveData);
+  const tabs = `<div class="segmented coming-up-tabs" role="group" aria-label="View">${[['upcoming', 'Upcoming'], ['changes', 'Changes']].map(([value, label]) => `<button data-coming-up-tab="${value}" aria-pressed="${tab === value}">${label}</button>`).join('')}</div>`;
+  let body;
+  if (tab === 'upcoming') {
+    const days = [...new Set(report.events.map(event => event.date))];
+    body = `<div class="coming-up-summary">${comingUpTotals(report.events)}<p class="note">Based on recorded patterns, not confirmed bills or deposits. Dates and amounts may vary. These totals don’t include everyday spending.</p></div>${days.length ? days.map(day => `<div class="coming-up-day"><h3 class="day-header">${new Date(`${dayKey(day)}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</h3>${report.events.filter(event => event.date === day).map(event => `<button class="coming-up-row" data-coming-up-history="${esc(event.id)}"><span class="coming-up-arrow ${event.isIncome ? 'in' : 'out'}">${icon(event.isIncome ? 'arrowIn' : 'arrowOut')}</span><span><span class="merchant">${esc(event.merchant)}</span><small>${event.isIncome ? 'Estimated income' : event.isAnnual ? 'Estimated annual renewal' : 'Estimated bill'}</small></span><strong>${dollars(event.amount)}</strong></button>`).join('')}</div>`).join('') : `<div class="coming-up-empty-card"><strong>No clear patterns coming up</strong><p class="note">Regular bills usually need three recorded payments, and new pay needs two. An empty timeline doesn’t mean nothing is due.</p></div>`}`;
+  } else {
+    body = `<p class="subtle">Recent price and pay changes, charges that stopped, possible duplicates, and annual renewals in the next 30 days. Select any finding to see its recorded transactions.</p>${report.changes.length ? report.changes.map(change => `<div class="coming-up-change"><button class="coming-up-change-open" data-coming-up-history="${esc(change.id)}"><span class="coming-up-change-title">${esc(changeTitle(change))}</span><strong>${esc(change.merchant)}</strong><small>${esc(changeDetail(change))}</small></button>${live ? `<button class="text-button muted-button" data-coming-up-dismiss="${esc(change.id)}" aria-label="Dismiss finding for ${esc(change.merchant)}">Dismiss this finding</button>` : ''}</div>`).join('') : `<div class="coming-up-empty-card"><strong>Nothing new to review</strong><p class="note">We’ll surface a finding when there’s a clear recurring pattern to compare.</p></div>`}${report.hasHidden && live ? '<button class="text-button" data-coming-up-restore>Restore dismissed findings</button><p class="note">Dismissals are saved in this browser for your account.</p>' : ''}`;
+  }
+  openDialog('Coming up', `${tabs}<div class="coming-up-body">${body}</div>`);
+}
+function showComingUpHistory(id) {
+  const report = comingUpReport();
+  const item = report.events.find(event => event.id === id) || report.changes.find(change => change.id === id);
+  if (!item) { showComingUp(); return; }
+  const found = item.transactionIDs.map(txId => rows.find(row => row.id === txId)).filter(Boolean).sort((a, b) => b.date.localeCompare(a.date));
+  openDialog(item.merchant, `<button class="text-button" data-coming-up-back>← Coming up</button><p class="subtle">Recorded transactions behind this estimate or change.</p><div class="transaction-list">${found.map(tx => txRow(tx)).join('') || empty('These transactions are no longer available.')}</div>`);
+}
+
 function home() {
   if (state.liveData && !rows.length) { main.innerHTML = '<section class="card account-gate"><h2>No saved transactions yet</h2><p class="note">Open the iPhone app and let it sync. Then reload your saved records here.</p><button class="button" data-action="reload-live">Reload saved records</button></section>'; return; }
   const data = selectedRows();
@@ -156,6 +232,7 @@ function home() {
       <div class="category-list">${categoryList(data)}</div>
       <a class="card-link" href="#activity">Explore your activity <span aria-hidden="true">↗</span></a>
     </section>
+    ${comingUpCard()}
     ${story ? `<button class="attention home-attention" data-category="${esc(story.id)}"><span class="insight-icon">${icon('spark')}</span><span class="attention-copy"><span class="attention-label">Worth a look</span><strong>${esc(story.name)} changed most</strong><small>${roundMoney(story.delta)} more than ${longMonth(story.prior)}${story.comparison ? ` ${story.comparison}` : ''}</small></span><span class="chevron" aria-hidden="true">↗</span></button>` : ''}
     <section class="card home-recent">${header('Recent activity', 'The details behind your month', '<a class="text-button" href="#activity">View all <span aria-hidden="true">↗</span></a>')}<div class="transaction-list">${data.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5).map(tx => txRow(tx)).join('') || empty('No transactions in this month.')}</div></section>
   </div>`;
@@ -694,13 +771,28 @@ document.addEventListener('click', event => {
       'open-settings': () => navigate('settings'),
       logout: () => { if (isLivePage) { void liveSignOut(); return; } resetSample(); state.session = false; state.pendingRoute = null; state.deletedPreview = false; navigate('login'); },
       'reset-sample': () => { if (isLivePage) { void liveConnection?.refresh(); return; } resetSample(); render(); announce('Sample changes reset.'); },
-      'monthly-report': showMonthlyReport,
+      'monthly-report': showMonthlyReport, 'coming-up': () => showComingUp('upcoming'),
       retirement: showRetirement, debt: showDebt, ownership: showOwnership,
       about: openAbout, 'banks-info': () => showSettingsInfo('banks'), 'categories-info': () => showSettingsInfo('categories'),
       'add-account': () => showManualAccount(), 'delete-account': showDeletion, 'export-sample': exportSample,
       'reset-password-info': () => openDialog('Reset your password', '<p class="subtle">The live website will send a reset link to the email on your Averlen account. Email delivery is not connected in this preview, and no message has been sent.</p>'),
     };
     actions[action]?.();
+  }
+  const comingUpTab = event.target.closest('[data-coming-up-tab]');
+  if (comingUpTab) { showComingUp(comingUpTab.dataset.comingUpTab); return; }
+  const comingUpHistory = event.target.closest('[data-coming-up-history]');
+  if (comingUpHistory) { showComingUpHistory(comingUpHistory.dataset.comingUpHistory); return; }
+  if (event.target.closest('[data-coming-up-back]')) { showComingUp(); return; }
+  const comingUpDismiss = event.target.closest('[data-coming-up-dismiss]');
+  if (comingUpDismiss && comingUpScope()) {
+    const map = comingUpDismissals(), scope = comingUpScope();
+    map[scope] = [...(map[scope] || []).filter(id => id !== comingUpDismiss.dataset.comingUpDismiss), comingUpDismiss.dataset.comingUpDismiss].slice(-300);
+    saveComingUpDismissals(map); showComingUp('changes'); if (state.route === 'home') home(); announce('Finding dismissed.'); return;
+  }
+  if (event.target.closest('[data-coming-up-restore]') && comingUpScope()) {
+    const map = comingUpDismissals(); delete map[comingUpScope()];
+    saveComingUpDismissals(map); showComingUp('changes'); if (state.route === 'home') home(); announce('Dismissed findings restored.'); return;
   }
   const lens = event.target.closest('[data-lens]');
   if (lens) { state.lens = lens.dataset.lens; wealth(); }

@@ -1,8 +1,8 @@
-import { configuration } from './config.js?v=5b6167e027';
-import { createFirebaseAdapter } from './firebase.js?v=5b6167e027';
-import { createConnection, safeMessage } from './connection.js?v=5b6167e027';
-import { attachLiveConnection } from '../preview/app.js?v=5b6167e027';
-import { createIdleGuard } from './idle.js?v=5b6167e027';
+import { configuration } from './config.js?v=9a62b2dd7a';
+import { createFirebaseAdapter } from './firebase.js?v=9a62b2dd7a';
+import { createConnection, safeMessage } from './connection.js?v=9a62b2dd7a';
+import { attachLiveConnection } from '../preview/app.js?v=9a62b2dd7a';
+import { createIdleGuard } from './idle.js?v=9a62b2dd7a';
 
 async function deviceId(uid) {
   const key = `averlen.web.device.${uid}`;

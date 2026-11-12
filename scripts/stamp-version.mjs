@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 const site = fileURLToPath(new URL('..', import.meta.url));
 export const files = [
   'index.html', 'app/bootstrap.js', 'app/config.js', 'app/connection.js', 'app/data.js', 'app/firebase.js', 'app/idle.js',
-  'preview/index.html', 'preview/app.js', 'preview/model.js', 'preview/demo.js', 'preview/planning.js', 'preview/styles.css',
+  'preview/index.html', 'preview/app.js', 'preview/model.js', 'preview/demo.js', 'preview/planning.js', 'preview/money-ahead.js', 'preview/subscription-patterns.js', 'preview/styles.css',
 ];
 // Relative .js/.css references: JS import specifiers and HTML src/href.
 const reference = /((?:from |import\()['"]|(?:src|href)=")(\.{1,2}\/[^'"?]+\.(?:js|css))(?:\?v=[\da-f]*)?(['"])/g;

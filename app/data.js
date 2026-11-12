@@ -48,7 +48,7 @@ export function normalizeSnapshot(profile, billing, payload) {
   const categories = categoryRows.filter(row => belongs(row, householdId) && !flag(row.is_deleted)).map(row => ({
     id: row.id, name: text(row.name) || 'Unnamed category',
     color: /^[\da-f]{6}$/i.test(text(row.color_hex).replace('#', '')) ? `#${row.color_hex.replace('#', '')}` : '#6C6E73',
-    icon: text(row.icon) || 'bag', excluded: flag(row.is_excluded), income: row.default_slug === 'income',
+    icon: text(row.icon) || 'bag', excluded: flag(row.is_excluded), income: row.default_slug === 'income', slug: text(row.default_slug),
     transfer: row.default_slug === 'internal_transfers', order: Number(row.sort_order) || 0,
   })).sort((a, b) => a.order - b.order);
   const categoryMap = new Map(categories.map(row => [row.id, row]));
@@ -90,6 +90,8 @@ export function normalizeSnapshot(profile, billing, payload) {
     return {
       uncategorized: !category,
       id: row.id, date: day(row.date), merchant: text(row.merchant_name) || 'Transaction',
+      // Coming up reads the name and amount exactly as synced, as the iPhone does.
+      merchantName: text(row.merchant_name), signedCents: cents(row.amount),
       cents: Math.abs(cents(row.amount)), category: category?.id || 'uncategorized',
       income: flag(row.is_income),
       transfer: flag(row.is_internal_transfer) || category?.transfer === true,
@@ -115,6 +117,17 @@ export function normalizeSnapshot(profile, billing, payload) {
     const prior = historyByDate.get(date);
     if (!prior || Number(row.version) >= prior.version) historyByDate.set(date, { date, assets, liabilities, cents: assets - liabilities, version: Number(row.version) || 0 });
   }
+  // The iPhone's subscription choices ("not a subscription" / "add as one"),
+  // applied in server version order as SyncManager.applyRemoteRecurringOverrides does.
+  const manualRecurring = new Set(), dismissedRecurring = new Set();
+  for (const row of rows(changes.recurring_overrides || [])) {
+    belongs(row, householdId);
+    const key = row.merchant_key;
+    if (typeof key !== 'string') continue;
+    if (flag(row.is_deleted)) { manualRecurring.delete(key); dismissedRecurring.delete(key); }
+    else if (row.override_type === 'manual') { dismissedRecurring.delete(key); manualRecurring.add(key); }
+    else if (row.override_type === 'dismissed') { manualRecurring.delete(key); dismissedRecurring.add(key); }
+  }
   return {
     profile, billing: { hasAccess: billing.has_access === true, status: text(billing.status), expiresAt: billing.access_expires_at || null, isPurchaser: billing.is_purchaser === true ? true : billing.is_purchaser === false ? false : null, productId: text(billing.product_id), trialEndsAt: billing.trial_ends_at || null },
     transactions, skippedTransactions, categories, accounts, history: [...historyByDate.values()].sort((a, b) => a.date.localeCompare(b.date)), householdId,
@@ -124,6 +137,7 @@ export function normalizeSnapshot(profile, billing, payload) {
       retirement: preferences.get('candor_retirement_plan') ?? null, loans: preferences.get('candor_debt_loans') ?? null,
       ownership: preferences.get('candor_ownership_split') ?? null,
       nicknames: plainObject(preferences.get('candor_account_nicknames')), hideIdle: preferences.get('candor_hide_idle_accounts') === true,
+      recurring: { manual: [...manualRecurring], dismissed: [...dismissedRecurring] },
     },
     bankAccounts: [], banksUnavailable: null,
   };
