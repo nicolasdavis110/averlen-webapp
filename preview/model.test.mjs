@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { totals, forMonth, categoryTotals, makeDemo, wealthTotals, categoryChanges, previousMonth, makeWealthHistory, applyOwnership, amortize, retirementEstimate, deletionPolicy, monthChange, attentionStory, pace, trendsComparison, monthlySeries } from './model.js';
+import { totals, forMonth, categoryTotals, makeDemo, wealthTotals, categoryChanges, previousMonth, makeWealthHistory, applyOwnership, amortize, retirementEstimate, deletionPolicy, monthChange, attentionStory, pace, trendsComparison, monthlySeries, trendLinePoints, spendingTrendLine } from './model.js';
 
 test('cash flow excludes transfers, deleted rows and excluded categories without losing cents', () => {
   const rows = [
@@ -139,4 +139,19 @@ test('trends compares with the typical month to date and labels the baseline', (
   const series = monthlySeries(rows, '2026-10', new Date(2026, 9, 10, 12));
   assert.deepEqual(series.bars.map(bar => bar.month), ['2026-08', '2026-09', '2026-10']);
   assert.equal(series.typical, 10000);
+});
+
+test('the 3-month trend line skips months with no history and needs two real months', () => {
+  const months = [
+    { month: '2026-01', value: 100 }, { month: '2026-02', value: null }, { month: '2026-03', value: 300 },
+    { month: '2026-04', value: 200 }, { month: '2026-05', value: null }, { month: '2026-06', value: 400 },
+  ];
+  assert.deepEqual(trendLinePoints(months, '2026-01'), [
+    { month: '2026-03', value: 200 }, { month: '2026-04', value: 250 }, { month: '2026-06', value: 300 },
+  ]);
+  assert.deepEqual(trendLinePoints(months, '2026-04'), [{ month: '2026-04', value: 250 }, { month: '2026-06', value: 300 }]);
+  // A gap in the list is not a month in the window.
+  assert.deepEqual(trendLinePoints([{ month: '2026-01', value: 100 }, { month: '2026-04', value: 200 }], '2026-01'), []);
+  // With no rows at all there is no line, not a line at $0.
+  assert.deepEqual(spendingTrendLine([], '2026-06', new Date(2026, 5, 15)), []);
 });

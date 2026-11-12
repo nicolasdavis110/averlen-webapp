@@ -239,6 +239,10 @@ footer { padding: 0 40px 28px; max-width: 1392px; margin: auto; display: flex; j
 .bar-button:hover, .bar-button.selected { background: var(--chart); }
 .bars.has-selection .bar-button:not(.selected):not(:hover) { opacity: .6; }
 .bar-month { font-size: 10px; color: var(--muted); line-height: 13px; }
+.trend-line { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; overflow: visible; }
+.trend-line path { fill: none; stroke: color-mix(in srgb,var(--text) 75%,transparent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.trend-line circle { fill: color-mix(in srgb,var(--text) 75%,transparent); }
+.chart-legend .swatch.trend { border-top: 2px solid color-mix(in srgb,var(--text) 75%,transparent); border-radius: 2px; }
 .typical-rule { position: absolute; left: 0; right: 0; bottom: calc(23px + var(--plot) * var(--t)); border-top: 1px dashed var(--muted); pointer-events: none; z-index: 1; opacity: .6; }
 .legend { font-size: 11px; color: var(--muted); margin: 22px 0 0; line-height: 1.7; }
 .change-row { width: 100%; display: grid; grid-template-columns: 34px minmax(0,1fr) auto; align-items: center; gap: 12px; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 18px 0; color: var(--text); text-align: left; }

@@ -1,4 +1,4 @@
-import { transactions as specs } from './demo.js?v=c5729769d0';
+import { transactions as specs } from './demo.js?v=2ecc2809b4';
 
 // This preview is intentionally isolated from authentication, storage, and APIs.
 export const categories = [
@@ -234,6 +234,32 @@ export function monthlySeries(rows, month, today = new Date()) {
   }
   const prior = bars.slice(0, -1).filter(bar => bar.spending > 0);
   return { bars, cutoff, typical: prior.length ? Math.round(prior.reduce((sum, bar) => sum + bar.spending, 0) / prior.length) : null };
+}
+// The 3-month trend line on Trends (TrendLine.swift on iOS). `months` is
+// oldest first: [{ month: 'YYYY-MM', value }], value null for a month with no
+// history yet, which is never counted as $0. A window is three calendar months.
+export function trendLinePoints(months, firstDisplayed) {
+  const index = month => Number(month.slice(0, 4)) * 12 + Number(month.slice(5, 7));
+  return months.flatMap((entry, i) => {
+    if (entry.month < firstDisplayed) return [];
+    const windowMonths = months.slice(Math.max(0, i - 2), i + 1).filter((other, j, list) => j === list.length - 1 || index(entry.month) - index(other.month) < 3);
+    if (windowMonths.at(-1).value == null) return [];
+    const real = windowMonths.map(other => other.value).filter(value => value != null);
+    return real.length >= 2 ? [{ month: entry.month, value: real.reduce((sum, value) => sum + value, 0) / real.length }] : [];
+  });
+}
+// Trends' line: the 12 charted months plus the one before, so the first bar can
+// still get a point. A month counts as history when it has any counted row
+// through the comparison day (comparableTransactionCount on iOS).
+export function spendingTrendLine(rows, month, today = new Date()) {
+  const cutoff = month === localDateKey(today).slice(0, 7) ? today.getDate() : 31;
+  const months = [];
+  for (let offset = 12; offset >= 0; offset--) {
+    const target = addMonths(month, -offset);
+    const counted = forMonth(rows, target, cutoff);
+    months.push({ month: target, value: counted.length ? totals(counted).spending : null });
+  }
+  return trendLinePoints(months, addMonths(month, -11));
 }
 export function applyOwnership(rows, percent = 100) {
   const share = Number.isFinite(percent) ? Math.max(0, Math.min(100, percent)) : 50;

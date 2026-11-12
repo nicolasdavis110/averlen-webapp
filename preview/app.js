@@ -1,7 +1,7 @@
-import { categories, accounts, localDateKey, addMonths, makeDemo, forMonth, totals, categoryTotals, makeWealthHistory, deletionPolicy, monthChange, attentionStory, pace, trendsComparison, monthlySeries, flowOf } from './model.js?v=c5729769d0';
-import { generate as moneyAhead, moneyAheadInputs, webTransactions, dayNumber, dayKey } from './money-ahead.js?v=c5729769d0';
-import { detectSubscriptions, subscriptionInputs, monthlyEquivalent } from './subscriptions.js?v=c5729769d0';
-import { RETIREMENT, demoRetirementPlan, parseRetirementPlan, retirementProjection, retirementEligibleBalance, statusLabel, parseLoans, demoLoans, loanResult, payoffScenario, debtPortfolio, loanKindName, parseOwnership, ownershipLens } from './planning.js?v=c5729769d0';
+import { categories, accounts, localDateKey, addMonths, makeDemo, forMonth, totals, categoryTotals, makeWealthHistory, deletionPolicy, monthChange, attentionStory, pace, trendsComparison, monthlySeries, spendingTrendLine, flowOf } from './model.js?v=2ecc2809b4';
+import { generate as moneyAhead, moneyAheadInputs, webTransactions, dayNumber, dayKey } from './money-ahead.js?v=2ecc2809b4';
+import { detectSubscriptions, subscriptionInputs, monthlyEquivalent } from './subscriptions.js?v=2ecc2809b4';
+import { RETIREMENT, demoRetirementPlan, parseRetirementPlan, retirementProjection, retirementEligibleBalance, statusLabel, parseLoans, demoLoans, loanResult, payoffScenario, debtPortfolio, loanKindName, parseOwnership, ownershipLens } from './planning.js?v=2ecc2809b4';
 
 const paths = {
   home: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/>',
@@ -301,6 +301,46 @@ function activityRows() {
   }).join('') || `${empty('No transactions match these filters.')}<button class="text-button" id="clear-filters">Clear filters</button>`;
   document.querySelector('#clear-filters')?.addEventListener('click', () => { state.query = ''; state.category = ''; state.type = ''; activity(); });
 }
+// The bars are HTML, so the line is measured from them once they're laid out,
+// and redrawn when the chart changes size. Monotone curve, like the iPhone.
+let trendLineObserver = null;
+function drawTrendLine(points, max) {
+  trendLineObserver?.disconnect(); trendLineObserver = null;
+  const bars = main.querySelector('.bars'), svg = bars?.querySelector('.trend-line');
+  if (!svg || !points.length) return;
+  const draw = () => {
+    const box = bars.getBoundingClientRect();
+    const plot = parseFloat(getComputedStyle(bars).getPropertyValue('--plot')) || 213;
+    const xy = points.map(point => {
+      const button = bars.querySelector(`.bar-button[data-month="${point.month}"]`);
+      if (!button) return null;
+      const rect = button.getBoundingClientRect();
+      return [rect.left + rect.width / 2 - box.left, rect.bottom - box.top - plot * (point.value / max)];
+    }).filter(Boolean);
+    svg.setAttribute('viewBox', `0 0 ${box.width} ${box.height}`);
+    svg.innerHTML = xy.length > 1 ? `<path d="${monotonePath(xy)}"/>` : xy.length ? `<circle cx="${xy[0][0]}" cy="${xy[0][1]}" r="2.5"/>` : '';
+  };
+  draw();
+  if ('ResizeObserver' in window) { trendLineObserver = new ResizeObserver(draw); trendLineObserver.observe(bars); }
+}
+// Fritsch–Carlson monotone cubic: never overshoots between points.
+function monotonePath(points) {
+  const n = points.length, dx = [], slope = [], tangent = [];
+  for (let i = 0; i < n - 1; i++) { dx[i] = points[i + 1][0] - points[i][0]; slope[i] = (points[i + 1][1] - points[i][1]) / dx[i]; }
+  tangent[0] = slope[0]; tangent[n - 1] = slope[n - 2];
+  for (let i = 1; i < n - 1; i++) tangent[i] = slope[i - 1] * slope[i] <= 0 ? 0 : (slope[i - 1] + slope[i]) / 2;
+  for (let i = 0; i < n - 1; i++) {
+    if (slope[i] === 0) { tangent[i] = 0; tangent[i + 1] = 0; continue; }
+    const a = tangent[i] / slope[i], b = tangent[i + 1] / slope[i], h = a * a + b * b;
+    if (h > 9) { const t = 3 / Math.sqrt(h); tangent[i] = t * a * slope[i]; tangent[i + 1] = t * b * slope[i]; }
+  }
+  let d = `M${points[0][0].toFixed(1)},${points[0][1].toFixed(1)}`;
+  for (let i = 0; i < n - 1; i++) {
+    const h = dx[i] / 3;
+    d += `C${(points[i][0] + h).toFixed(1)},${(points[i][1] + tangent[i] * h).toFixed(1)} ${(points[i + 1][0] - h).toFixed(1)},${(points[i + 1][1] - tangent[i + 1] * h).toFixed(1)} ${points[i + 1][0].toFixed(1)},${points[i + 1][1].toFixed(1)}`;
+  }
+  return d;
+}
 function trends() {
   const trendRows = rows.filter(row => !row.trendExcluded);
   const comparison = trendsComparison(trendRows, state.month, today);
@@ -309,14 +349,17 @@ function trends() {
   const anchor = state.month < addMonths(currentMonth, -11) ? addMonths(state.month, 11) : currentMonth;
   const series = monthlySeries(trendRows, anchor, today);
   const isCurrent = anchor === currentMonth;
-  const max = Math.max(...series.bars.map(bar => bar.spending), series.typical || 0, 1);
+  // 3-month trend line (TrendLine.swift), drawn only over months that have a bar.
+  const trend = spendingTrendLine(trendRows, anchor, today).filter(point => series.bars.some(bar => bar.month === point.month));
+  const max = Math.max(...series.bars.map(bar => bar.spending), ...trend.map(point => point.value), series.typical || 0, 1);
   const selected = series.bars.find(bar => bar.month === state.month) || series.bars.at(-1);
   const summaryLine = !comparison.available ? 'Building your comparison.' : Math.abs(comparison.totalDelta) < 1000 ? 'Overall spending is close to your typical level.' : `${roundMoney(Math.abs(comparison.totalDelta))} ${comparison.totalDelta > 0 ? 'above' : 'below'} your typical level.`;
   const drivers = comparison.drivers.map(cat => {
     const scale = Math.max(cat.current, cat.typical, 1);
     return `<button class="change-row" data-category="${esc(cat.id)}">${catIcon(cat)}<span><strong>${esc(cat.name)}</strong><span class="driver-track"><span style="width:${(cat.current / scale * 100).toFixed(1)}%"></span></span></span><span class="change-amount">${cat.delta > 0 ? '+' : '−'}${roundMoney(Math.abs(cat.delta))}<small>${roundMoney(cat.current)} now · ${roundMoney(cat.typical)} typical</small></span></button>`;
   }).join('');
-  main.innerHTML = `${summary(forMonth(trendRows, state.month))}<div class="grid"><section class="card"><div class="section-heading"><div><h2>Spending over time</h2><p class="card-subtitle">${isCurrent ? `Through day ${series.cutoff} of each month` : 'Spending by month'}</p></div><div class="projected"><strong>${compact(selected.spending)}</strong><span>${monthLabel(state.month)}</span></div></div><div class="bars${state.month !== currentMonth ? ' has-selection' : ''}" style="--t:${series.typical ? (series.typical / max).toFixed(3) : 0}">${series.typical ? '<span class="typical-rule" aria-hidden="true"></span>' : ''}${series.bars.map(bar => `<div class="bar-group"><button class="bar-button ${bar.month === state.month ? 'selected' : ''}" data-month="${bar.month}" style="--h:${(bar.spending / max).toFixed(3)}" aria-label="Explore ${monthLabel(bar.month)}, ${money(bar.spending)} spending" title="${monthLabel(bar.month)} · ${money(bar.spending)}"></button><span class="bar-month">${shortMonth(bar.month)}</span></div>`).join('')}</div>${series.typical ? `<div class="chart-legend"><span><i class="swatch dashed"></i>${compact(series.typical)} typical</span></div>` : ''}<p class="legend">Only months covered from day 1 are shown${isCurrent ? '; every month stops at the same day' : ''}. Select a bar to explore that month.</p></section><section class="card"><div class="section-heading"><div><h2>What changed</h2><p class="card-subtitle">${esc(summaryLine)}</p></div><span class="comparison-label">${esc(comparison.label)}</span></div>${comparison.available ? drivers || empty('No category moved meaningfully from your typical level.') : empty('A full prior month of saved history is needed for a fair comparison.')}${drivers ? '<p class="legend">Select a category to review the transactions behind the change.</p>' : ''}</section><section class="card report-card full"><div class="insight-icon">${icon('activity')}</div><div><h2>Your monthly report</h2><p class="subtle">See income, spending, and the purchases behind ${monthLabel(state.month)} in one place.</p></div><button class="button" data-action="monthly-report">Open report →</button></section></div>`;
+  main.innerHTML = `${summary(forMonth(trendRows, state.month))}<div class="grid"><section class="card"><div class="section-heading"><div><h2>Spending over time</h2><p class="card-subtitle">${isCurrent ? `Through day ${series.cutoff} of each month` : 'Spending by month'}</p></div><div class="projected"><strong>${compact(selected.spending)}</strong><span>${monthLabel(state.month)}</span></div></div><div class="bars${state.month !== currentMonth ? ' has-selection' : ''}" style="--t:${series.typical ? (series.typical / max).toFixed(3) : 0}">${series.typical ? '<span class="typical-rule" aria-hidden="true"></span>' : ''}${trend.length ? `<svg class="trend-line" role="img" aria-label="3-month trend: ${esc(trend.map(point => `${shortMonth(point.month)} ${compact(Math.round(point.value))}`).join(', '))}"></svg>` : ''}${series.bars.map(bar => `<div class="bar-group"><button class="bar-button ${bar.month === state.month ? 'selected' : ''}" data-month="${bar.month}" style="--h:${(bar.spending / max).toFixed(3)}" aria-label="Explore ${monthLabel(bar.month)}, ${money(bar.spending)} spending" title="${monthLabel(bar.month)} · ${money(bar.spending)}"></button><span class="bar-month">${shortMonth(bar.month)}</span></div>`).join('')}</div>${trend.length || series.typical ? `<div class="chart-legend">${trend.length ? '<span><i class="swatch trend"></i>3-mo trend</span>' : ''}${series.typical ? `<span><i class="swatch dashed"></i>${compact(series.typical)} typical</span>` : ''}</div>` : ''}<p class="legend">Only months covered from day 1 are shown${isCurrent ? '; every month stops at the same day' : ''}. Select a bar to explore that month.</p></section><section class="card"><div class="section-heading"><div><h2>What changed</h2><p class="card-subtitle">${esc(summaryLine)}</p></div><span class="comparison-label">${esc(comparison.label)}</span></div>${comparison.available ? drivers || empty('No category moved meaningfully from your typical level.') : empty('A full prior month of saved history is needed for a fair comparison.')}${drivers ? '<p class="legend">Select a category to review the transactions behind the change.</p>' : ''}</section><section class="card report-card full"><div class="insight-icon">${icon('activity')}</div><div><h2>Your monthly report</h2><p class="subtle">See income, spending, and the purchases behind ${monthLabel(state.month)} in one place.</p></div><button class="button" data-action="monthly-report">Open report →</button></section></div>`;
+  drawTrendLine(trend, max);
 }
 // ── Wealth (mirrors WealthView.swift: hero, Progress, Next steps, Accounts) ──
 // Same "$1.1M" / "$12.5K" rules as Double.asCompactCurrency on iOS.

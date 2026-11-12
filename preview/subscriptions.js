@@ -2,7 +2,7 @@
 // the input rules from its DerivedTransactionStore overload. Keep the two in
 // step. Unlike Coming up, this works on exact moments, not calendar days: the
 // iPhone measures gaps with timeIntervalSince, so a gap can be 30.96 days.
-import { normalizeMerchant, legacyMerchantKey, subscriptionMatch } from './money-ahead.js?v=c5729769d0';
+import { normalizeMerchant, legacyMerchantKey, subscriptionMatch } from './money-ahead.js?v=2ecc2809b4';
 
 const DAY = 86400000;
 const gapDays = (newer, older) => (newer.at - older.at) / DAY;

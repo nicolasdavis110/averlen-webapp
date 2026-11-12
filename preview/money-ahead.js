@@ -3,7 +3,7 @@
 // step: the same history must give the same estimates on the web as on the
 // phone. Dates are whole days (days since 1970-01-01 on the calendar), which
 // is how the iPhone compares them (startOfDay on both sides).
-import { listedPatterns, guaranteedPatterns, everydayWordBrands, brandEndings } from './subscription-patterns.js?v=c5729769d0';
+import { listedPatterns, guaranteedPatterns, everydayWordBrands, brandEndings } from './subscription-patterns.js?v=2ecc2809b4';
 
 // MARK: merchant names (RecurringDetector.swift)
 
