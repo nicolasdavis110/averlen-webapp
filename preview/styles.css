@@ -478,6 +478,12 @@ dialog select, #delete-confirmation { width: 100%; }
 .auth-links a:hover { text-decoration: underline; }
 .auth-links .text-button { font-size: 10px; }
 .auth-form .note { font-size: 11px; line-height: 1.8; }
+.web-notice { background: var(--wash); border: 1px solid color-mix(in srgb,var(--green) 24%,var(--line)); border-radius: var(--radius-sm); padding: 18px 20px; margin: 0 0 30px; font-size: 12px; line-height: 1.7; }
+.web-notice>strong { display: block; font-size: 15px; letter-spacing: -.2px; margin-bottom: 6px; color: var(--text); }
+.web-notice p { margin: 0 0 6px; color: var(--muted); }
+.web-notice p strong { color: var(--text); }
+.web-notice-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.web-notice-actions .button { flex: 1 1 170px; min-height: 42px; }
 .auth-form>input:disabled { opacity: .6; cursor: not-allowed; }
 
 /* Responsive rules are kept together so later component rules cannot mask them. */
