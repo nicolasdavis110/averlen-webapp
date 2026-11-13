@@ -1,7 +1,7 @@
-import { categories, accounts, localDateKey, addMonths, makeDemo, forMonth, totals, categoryTotals, makeWealthHistory, deletionPolicy, monthChange, attentionStory, pace, trendsComparison, monthlySeries, spendingTrendLine, flowOf } from './model.js?v=2ecc2809b4';
-import { generate as moneyAhead, moneyAheadInputs, webTransactions, dayNumber, dayKey } from './money-ahead.js?v=2ecc2809b4';
-import { detectSubscriptions, subscriptionInputs, monthlyEquivalent } from './subscriptions.js?v=2ecc2809b4';
-import { RETIREMENT, demoRetirementPlan, parseRetirementPlan, retirementProjection, retirementEligibleBalance, statusLabel, parseLoans, demoLoans, loanResult, payoffScenario, debtPortfolio, loanKindName, parseOwnership, ownershipLens } from './planning.js?v=2ecc2809b4';
+import { categories, accounts, localDateKey, addMonths, makeDemo, forMonth, totals, categoryTotals, makeWealthHistory, deletionPolicy, monthChange, attentionStory, pace, trendsComparison, monthlySeries, spendingTrendLine, flowOf } from './model.js?v=cd9eb5acff';
+import { generate as moneyAhead, moneyAheadInputs, webTransactions, dayNumber, dayKey } from './money-ahead.js?v=cd9eb5acff';
+import { detectSubscriptions, subscriptionInputs, monthlyEquivalent } from './subscriptions.js?v=cd9eb5acff';
+import { RETIREMENT, demoRetirementPlan, parseRetirementPlan, retirementProjection, retirementEligibleBalance, statusLabel, parseLoans, demoLoans, loanResult, payoffScenario, debtPortfolio, loanKindName, parseOwnership, ownershipLens } from './planning.js?v=cd9eb5acff';
 
 const paths = {
   home: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/>',
@@ -80,8 +80,20 @@ const demoCategories = categories.map(category => ({ ...category }));
 let liveConnection = null, liveConfiguration = null;
 let liveMessage = () => 'Could not finish this request. Please try again.';
 const rows = makeDemo(today);
-const wealthAccounts = accounts.map(account => ({ ...account }));
-const wealthHistory = makeWealthHistory(today);
+// The sample's retirement balance and Debt payoff loans also appear as
+// accounts, so Wealth, Retirement and Debt payoff describe one household.
+const sampleAccounts = () => {
+  const manual = (id, name, cents, type, asset) => ({ id, name, cents, type, asset, manual: true, institution: 'Manual', mask: '' });
+  return [
+    ...accounts.map(account => ({ ...account })),
+    manual('sample-401k', '401(k)', RETIREMENT.demoBalance * 100, 'Investments', true),
+    manual('sample-home', 'Home', 41200000, 'Other Assets', true),
+    manual('sample-car', 'Car', 1850000, 'Other Assets', true),
+    ...demoLoans(today).map(loan => manual(`sample-${loan.id}`, loan.name, Math.round(loanResult(loan, today).currentBalance * 100), 'Loans', false)),
+  ];
+};
+const wealthAccounts = sampleAccounts();
+const wealthHistory = makeWealthHistory(today, wealthAccounts.reduce((sum, account) => sum + (account.asset ? account.cents : -account.cents), 0));
 function savedTheme() { try { const value = localStorage.getItem('averlen.theme'); return ['light', 'dark'].includes(value) ? value : null; } catch { return null; } }
 const samplePlanning = () => ({ retirement: demoRetirementPlan(), retirementBalance: RETIREMENT.demoBalance, loans: demoLoans(today), debtExtra: 200, split: false, share: 50, lens: 'household' });
 const months = [...new Set(rows.map(tx => tx.date.slice(0, 7)))].sort().reverse();
@@ -598,7 +610,7 @@ function showSettingsInfo(kind) {
 
 function resetSample() {
   rows.splice(0, rows.length, ...makeDemo(today));
-  wealthAccounts.splice(0, wealthAccounts.length, ...accounts.map(account => ({ ...account })));
+  wealthAccounts.splice(0, wealthAccounts.length, ...sampleAccounts());
   Object.assign(state, samplePlanning()); state.query = ''; state.category = ''; state.type = '';
 }
 function authStory() {
@@ -782,7 +794,7 @@ function liveStatus() {
 function liveLogin() {
   const available = Boolean(liveConfiguration?.enabled && liveConnection);
   const appleAvailable = available && liveConfiguration.appleEnabled;
-  main.innerHTML = `<div class="auth-shell">${authStory()}<section class="auth-form card"><span class="overline">YOUR AVERLEN ACCOUNT</span><h1>Welcome back.</h1><p class="subtle">Your financial picture is ready when you are.</p>${state.liveDeleted ? `<p class="success-note" role="status">${state.liveDeleted === 'unconfirmed' ? 'We could not confirm whether deletion finished. Your session was cleared. Sign in again to check, or contact support. The website will not retry deletion automatically.' : 'Your account was deleted. Bank disconnection and remaining provider cleanup are being processed.'}</p>` : ''}${!available ? '<div class="preview-note">Web sign-in is being prepared. The sample preview is available while the secure connection is completed.</div>' : '<p class="note">This first web version shows saved records. Editing and bank refresh remain in the iPhone app.</p>'}<button class="button apple-button" id="apple-signin" ${appleAvailable ? '' : 'disabled'}>Continue with Apple</button>${!appleAvailable && available ? '<p class="note">Apple web sign-in is still being configured. Use the iPhone app if your account uses Apple.</p>' : ''}<div class="auth-divider">or use email</div><form id="live-login-form"><div class="form-field"><label for="live-email">Email</label><input id="live-email" type="email" autocomplete="username" required ${available ? '' : 'disabled'}></div><div class="form-field"><label for="live-password">Password</label><input id="live-password" type="password" autocomplete="current-password" required ${available ? '' : 'disabled'}></div><p id="login-error" class="form-error" role="alert"></p><button type="submit" class="button primary" ${available ? '' : 'disabled'}>Sign in</button><button type="button" class="text-button" id="live-reset-password" ${available ? '' : 'disabled'}>Forgot password?</button></form><a href="../preview/" class="button">Explore sample preview →</a><p class="note">Use your original account and sign-in method. The website will not create or link accounts automatically.</p><div class="auth-links"><a href="#account">Saved data & account</a><a href="https://averlen.app/support.html">Support</a><button class="text-button" data-theme-action>Appearance</button></div></section></div>`;
+  main.innerHTML = `<div class="auth-shell">${authStory()}<section class="auth-form card"><span class="overline">YOUR AVERLEN ACCOUNT</span><h1>Welcome back.</h1><p class="subtle">Your financial picture is ready when you are.</p>${state.liveDeleted ? `<p class="success-note" role="status">${state.liveDeleted === 'unconfirmed' ? 'We could not confirm whether deletion finished. Your session was cleared. Sign in again to check, or contact support. The website will not retry deletion automatically.' : 'Your account was deleted. Bank disconnection and remaining provider cleanup are being processed.'}</p>` : ''}${!available ? '<div class="preview-note">Web sign-in is being prepared. The sample preview is available while the secure connection is completed.</div>' : '<p class="note">This first web version shows saved records. Editing and bank refresh remain in the iPhone app.</p>'}<button class="button apple-button" id="apple-signin" ${appleAvailable ? '' : 'disabled'}>Continue with Apple</button>${!appleAvailable && available ? '<p class="note">Apple web sign-in is still being configured. Use the iPhone app if your account uses Apple.</p>' : ''}<div class="auth-divider">or use email</div><form id="live-login-form"><div class="form-field"><label for="live-email">Email</label><input id="live-email" type="email" autocomplete="username" required ${available ? '' : 'disabled'}></div><div class="form-field"><label for="live-password">Password</label><input id="live-password" type="password" autocomplete="current-password" required ${available ? '' : 'disabled'}></div><p id="login-error" class="form-error" role="alert"></p><button type="submit" class="button primary" ${available ? '' : 'disabled'}>Sign in</button><button type="button" class="text-button" id="live-reset-password" ${available ? '' : 'disabled'}>Forgot password?</button></form><a href="../preview/" class="button">Explore sample preview →</a><p class="note">New to Averlen? Accounts are created in the iPhone app. <a href="https://apps.apple.com/us/app/averlen/id6792603482">Get Averlen on the App Store</a>.</p><p class="note">Already a member? Use your original sign-in method. The website will not create or link accounts automatically.</p><div class="auth-links"><a href="#account">Saved data & account</a><a href="https://averlen.app/support.html">Support</a><button class="text-button" data-theme-action>Appearance</button></div></section></div>`;
   document.querySelector('#live-login-form').addEventListener('submit', async event => {
     event.preventDefault(); if (!available) return;
     const form = event.currentTarget, email = form.querySelector('#live-email').value.trim(), passwordField = form.querySelector('#live-password');

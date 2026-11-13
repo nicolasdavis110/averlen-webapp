@@ -127,6 +127,15 @@ export const transactions = [
     "transfer": false
   },
   {
+    "id": "demo-pay-0",
+    "daysAgo": 0,
+    "merchant": "Acme Corp Payroll",
+    "cents": 425000,
+    "category": "income",
+    "income": true,
+    "transfer": false
+  },
+  {
     "id": "demo-14",
     "daysAgo": 14,
     "merchant": "Acme Corp Payroll",
