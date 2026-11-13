@@ -1,7 +1,7 @@
-import { categories, accounts, localDateKey, addMonths, makeDemo, forMonth, totals, categoryTotals, makeWealthHistory, deletionPolicy, monthChange, attentionStory, pace, trendsComparison, monthlySeries, spendingTrendLine, flowOf } from './model.js?v=cd9eb5acff';
-import { generate as moneyAhead, moneyAheadInputs, webTransactions, dayNumber, dayKey } from './money-ahead.js?v=cd9eb5acff';
-import { detectSubscriptions, subscriptionInputs, monthlyEquivalent } from './subscriptions.js?v=cd9eb5acff';
-import { RETIREMENT, demoRetirementPlan, parseRetirementPlan, retirementProjection, retirementEligibleBalance, statusLabel, parseLoans, demoLoans, loanResult, payoffScenario, debtPortfolio, loanKindName, parseOwnership, ownershipLens } from './planning.js?v=cd9eb5acff';
+import { categories, accounts, localDateKey, addMonths, makeDemo, forMonth, totals, categoryTotals, makeWealthHistory, deletionPolicy, monthChange, attentionStory, pace, trendsComparison, monthlySeries, spendingTrendLine, flowOf } from './model.js?v=7cbe578699';
+import { generate as moneyAhead, moneyAheadInputs, webTransactions, dayNumber, dayKey } from './money-ahead.js?v=7cbe578699';
+import { detectSubscriptions, subscriptionInputs, monthlyEquivalent } from './subscriptions.js?v=7cbe578699';
+import { RETIREMENT, demoRetirementPlan, parseRetirementPlan, retirementProjection, retirementEligibleBalance, statusLabel, parseLoans, demoLoans, loanResult, payoffScenario, debtPortfolio, loanKindName, parseOwnership, ownershipLens } from './planning.js?v=7cbe578699';
 
 const paths = {
   home: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/>',
@@ -97,7 +97,8 @@ const wealthHistory = makeWealthHistory(today, wealthAccounts.reduce((sum, accou
 function savedTheme() { try { const value = localStorage.getItem('averlen.theme'); return ['light', 'dark'].includes(value) ? value : null; } catch { return null; } }
 const samplePlanning = () => ({ retirement: demoRetirementPlan(), retirementBalance: RETIREMENT.demoBalance, loans: demoLoans(today), debtExtra: 200, split: false, share: 50, lens: 'household' });
 const months = [...new Set(rows.map(tx => tx.date.slice(0, 7)))].sort().reverse();
-const state = { route: 'login', session: false, liveData: null, phase: 'signed-out', liveError: null, liveDeleted: false, month: currentMonth, query: '', category: '', type: '', ...samplePlanning(), deletedPreview: false, theme: savedTheme() || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') };
+// The sample opens straight into the sample account; only the live page starts signed out.
+const state = { route: 'login', session: !isLivePage, liveData: null, phase: 'signed-out', liveError: null, liveDeleted: false, month: currentMonth, query: '', category: '', type: '', ...samplePlanning(), deletedPreview: false, theme: savedTheme() || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') };
 const main = document.querySelector('#main');
 const dialog = document.querySelector('#detail');
 const catFor = id => categories.find(cat => cat.id === id) || { name: 'Uncategorized', color: '#6C6E73', icon: 'bag' };
@@ -863,7 +864,7 @@ document.addEventListener('click', event => {
       'manage-account': () => navigate('account'),
       'reload-live': () => { void liveConnection?.refresh(); },
       'open-settings': () => navigate('settings'),
-      logout: () => { if (isLivePage) { void liveSignOut(); return; } resetSample(); state.session = false; state.pendingRoute = null; state.deletedPreview = false; navigate('login'); },
+      logout: () => { if (isLivePage) { void liveSignOut(); return; } resetSample(); state.session = false; state.pendingRoute = null; state.deletedPreview = false; location.href = '../'; },
       'reset-sample': () => { if (isLivePage) { void liveConnection?.refresh(); return; } resetSample(); render(); announce('Sample changes reset.'); },
       'monthly-report': showMonthlyReport, 'coming-up': () => showComingUp('upcoming'), subscriptions: showSubscriptions,
       retirement: showRetirement, debt: showDebt, ownership: showOwnership,

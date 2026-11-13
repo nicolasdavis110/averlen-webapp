@@ -656,3 +656,7 @@ dialog select, #delete-confirmation { width: 100%; }
 @media(prefers-reduced-motion:reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }
+
+/* Preview banner actions: keep the way back to sign-in beside About on every width. */
+.preview-banner>span.banner-actions { display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+.preview-banner a.text-button { text-decoration: none; }
